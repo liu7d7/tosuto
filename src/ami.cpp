@@ -620,8 +620,26 @@ namespace ami
     {
       tok_type type = tok.type;
       advance();
-      node* rhs = ami_unwrap(pre_unary());
-      lhs = new bin_op_node(lhs, rhs, type, lhs->begin, rhs->end);
+      auto s = save_state();
+      auto thing = pre_unary();
+      if (!thing.has_value())
+      {
+        set_state(s);
+        if (lhs->type == node_type::bin_op)
+        {
+          auto bin_op = dynamic_cast<bin_op_node*>(lhs);
+          bin_op->rhs = new un_op_node(bin_op->rhs, tok_type::mul, bin_op->rhs->begin, tok.begin);
+        }
+        else
+        {
+          lhs = new un_op_node(lhs, tok_type::mul, lhs->begin, tok.begin);
+        }
+      }
+      else
+      {
+        node* rhs = ami_unwrap(thing);
+        lhs = new bin_op_node(lhs, rhs, type, lhs->begin, rhs->end);
+      }
     }
 
     return lhs;
@@ -815,14 +833,20 @@ namespace ami
     pos begin = tok.begin;
     token id = ami_unwrap(expect(tok_type::id));
 
-    std::vector<std::string> args;
+    std::vector<std::pair<std::string, bool>> args;
     if (tok.type == tok_type::colon)
     {
       advance();
       while (tok.type == tok_type::id)
       {
-        args.push_back(tok.lexeme);
+        std::pair<std::string, bool> arg{tok.lexeme, false};
         advance();
+        if (tok.type == tok_type::mul)
+        {
+          arg.second = true;
+          advance();
+        }
+        args.push_back(arg);
       }
     }
 
@@ -838,6 +862,16 @@ namespace ami
     return new fn_def_node(id.lexeme, args, body, begin, body->end);
   }
 
+  void parser::set_state(const parser::state& s)
+  {
+    idx = s.idx, tok = s.tok, next = s.tok;
+  }
+
+  parser::state parser::save_state()
+  {
+    return state{idx, tok, next};
+  }
+
   node::node(node_type type, pos begin, pos end) :
     type(type),
     begin(begin),
@@ -849,7 +883,7 @@ namespace ami
     throw std::runtime_error("TODO: implement");
   }
 
-  fn_def_node::fn_def_node(std::string name, std::vector<std::string> args,
+  fn_def_node::fn_def_node(std::string name, std::vector<std::pair<std::string, bool>> args,
                            node* body, pos begin, pos end) :
     name(std::move(name)),
     args(std::move(args)),
@@ -863,7 +897,8 @@ namespace ami
     std::string arg_str;
     for (auto const& it: args)
     {
-      arg_str += it;
+      arg_str += it.first;
+      if (it.second) arg_str += "*";
       arg_str += ", ";
     }
 
@@ -1153,7 +1188,7 @@ namespace ami
     if (auto it = dynamic_cast<block_node*>(nod))
     {
       value ret{nil_type{}};
-      symbol_table new_sym{&sym, std::unordered_map<std::string, value>()};
+      symbol_table new_sym{std::unordered_map<std::string, value>(), &sym};
 
       for (auto exp : it->exprs)
       {
@@ -1227,8 +1262,8 @@ namespace ami
     return std::unexpected("Failed to interpret " + nod->pretty(0) + " in " + loc.function_name());
   }
 
-  symbol_table::symbol_table(symbol_table* parent,
-                             std::unordered_map<std::string, value> vals)
+  symbol_table::symbol_table(std::unordered_map<std::string, value> vals,
+                             symbol_table* parent)
     : parent(parent), vals(std::move(vals))
   {}
 
@@ -1272,10 +1307,12 @@ namespace ami
       case 4:
       case 5: return "function";
       case 6: return "nil";
+      case 7: return "ref to " + std::get<7>(val).get().type_name();
+      default: std::unreachable();
     }
   }
 
-  interpret_result value::add(const value& other)
+  interpret_result value::add(const value& other) const
   {
     switch (val.index())
     {
@@ -1286,7 +1323,7 @@ namespace ami
           return fail("Cannot add num to anything other than num");
         }
 
-        return value{get<double>(val) + get<double>(other.val)};
+        return value{std::get<double>(val) + std::get<double>(other.val)};
       }
       case 1:
       {
@@ -1295,14 +1332,15 @@ namespace ami
           return fail("Cannot add str to anything other than str");
         }
 
-        return value{get<std::string>(val) + get<std::string>(other.val)};
+        return value{std::get<std::string>(val) + std::get<std::string>(other.val)};
       }
+      case 7: return std::get<7>(val).get().add(other);
       default: return
           fail("Cannot do " + type_name() + " + " + other.type_name());
     }
   }
 
-  interpret_result value::sub(const value& other)
+  interpret_result value::sub(const value& other) const
   {
     switch (val.index())
     {
@@ -1313,14 +1351,15 @@ namespace ami
           return fail("Cannot sub num from anything other than num");
         }
 
-        return value{get<double>(val) - get<double>(other.val)};
+        return value{std::get<double>(val) - std::get<double>(other.val)};
       }
+      case 7: return std::get<7>(val).get().sub(other);
       default: return
           fail("Cannot do " + type_name() + " - " + other.type_name());
     }
   }
 
-  interpret_result value::mul(const value& other)
+  interpret_result value::mul(const value& other) const
   {
     switch (val.index())
     {
@@ -1328,12 +1367,12 @@ namespace ami
       {
         if (std::holds_alternative<double>(other.val))
         {
-          return value{get<double>(val) * get<double>(other.val)};
+          return value{std::get<double>(val) * std::get<double>(other.val)};
         }
 
         if (std::holds_alternative<std::string>(other.val))
         {
-          return value{repeat(get<std::string>(other.val), size_t(floor(get<double>(val))))};
+          return value{repeat(std::get<std::string>(other.val), size_t(floor(std::get<double>(val))))};
         }
 
         return fail("Cannot mul num by anything other than num or str");
@@ -1345,21 +1384,22 @@ namespace ami
           return std::unexpected{"Cannot mul str to anything other than str"};
         }
 
-        return value{repeat(get<std::string>(val), size_t(floor(get<double>(other.val))))};
+        return value{repeat(std::get<std::string>(val), size_t(floor(std::get<double>(other.val))))};
       }
+      case 7: return std::get<7>(val).get().mul(other);
       default: return
           fail("Cannot do " + type_name() + " * " + other.type_name());
     }
   }
 
   interpret_result
-  value::call(const std::vector<value>& args, symbol_table& sym)
+  value::call(const std::vector<value>& args, symbol_table& sym) const
   {
     switch (val.index())
     {
       case 4:
       {
-        fn_def_node* fn_def = get<fn_def_node*>(val);
+        fn_def_node* fn_def = std::get<fn_def_node*>(val);
         interpreter interp{};
         std::unordered_map<std::string, value> arg_vals;
         if (args.size() != fn_def->args.size())
@@ -1369,21 +1409,23 @@ namespace ami
 
         for (size_t i = 0; i < args.size(); i++)
         {
-          arg_vals[fn_def->args[i]] = args[i];
+          arg_vals[fn_def->args[i].first] = args[i];
         }
 
-        symbol_table new_sym = symbol_table{&sym, arg_vals};
+        symbol_table new_sym = symbol_table{arg_vals, &sym};
         return interp.interpret(fn_def->body, new_sym);
       }
       case 5:
       {
-        auto fn = get<builtin_fn>(val);
+        auto fn = std::get<builtin_fn>(val);
         return fn(args, sym);
       }
+      case 7: return std::get<7>(val).get().call(args, sym);
+      default: return fail("Can't call a " + type_name());
     }
   }
 
-  interpret_result value::div(const value& other)
+  interpret_result value::div(const value& other) const
   {
     switch (val.index())
     {
@@ -1394,14 +1436,15 @@ namespace ami
           return fail("Cannot div num by anything other than num");
         }
 
-        return value{get<double>(val) / get<double>(other.val)};
+        return value{std::get<double>(val) / std::get<double>(other.val)};
       }
+      case 7: return std::get<7>(val).get().div(other);
       default: return
           fail("Cannot do " + type_name() + " / " + other.type_name());
     }
   }
 
-  interpret_result value::mod(const value& other)
+  interpret_result value::mod(const value& other) const
   {
     switch (val.index())
     {
@@ -1412,31 +1455,103 @@ namespace ami
           return fail("Cannot mod num by anything other than num");
         }
 
-        return value{fmod(get<double>(val), get<double>(other.val))};
+        return value{fmod(std::get<double>(val), std::get<double>(other.val))};
       }
+      case 7: return std::get<7>(val).get().mod(other);
       default: return
           fail("Cannot do " + type_name() + " % " + other.type_name());
     }
   }
 
-  bool value::truthy()
+  bool value::truthy() const
   {
-    throw std::runtime_error("TODO: not implemented yet");
+    switch (val.index())
+    {
+      case 2: return std::get<bool>(val);
+      case 6: return false;
+      case 7: return std::get<7>(val).get().truthy();
+      default: return true;
+    }
   }
 
-  interpret_result value::invert()
+  interpret_result value::invert() const
   {
-    throw std::runtime_error("TODO: not implemented yet");
+    return interpret_result{value{!truthy()}};
   }
 
-  interpret_result value::eq(const value& other)
+#define VALUE_EQ_ONE_CASE(idx) \
+case idx:\
+{\
+  if (std::holds_alternative<ref>(other.val)) return eq(std::get<ref>(other.val).get());\
+  if (other.val.index() != idx) return value::sym_false;\
+  return interpret_result{value{std::get<idx>(val) == std::get<idx>(other.val)}};\
+}\
+
+  interpret_result value::eq(const value& other) const
   {
-    throw std::runtime_error("TODO: not implemented yet");
+    switch (val.index())
+    {
+      VALUE_EQ_ONE_CASE(0)
+      VALUE_EQ_ONE_CASE(1)
+      VALUE_EQ_ONE_CASE(2)
+      VALUE_EQ_ONE_CASE(4)
+      case 7: return std::get<7>(val).get().eq(other);
+      default:
+        return value::sym_false;
+    }
   }
 
-  interpret_result value::neq(const value& other)
+  interpret_result value::neq(const value& other) const
   {
-    throw std::runtime_error("TODO: not implemented yet");
+    value equ = ami_unwrap(eq(other));
+    return equ.invert();
+  }
+
+  value
+    value::sym_false = value{false},
+    value::sym_true = value{true},
+    value::sym_nil = value{nil_type{}};
+
+  interpret_result value::get(const std::string& field)
+  {
+    if (std::holds_alternative<ref>(val))
+    {
+      auto r = std::get<ref>(val).get();
+      auto ptr = ami_unwrap(internal_get(field));
+      return value{decltype(val){std::ref(*ptr)}};
+    }
+
+    auto ptr = ami_unwrap(internal_get(field));
+    return *ptr;
+  }
+
+  interpret_result value::set(const std::string& field, value other)
+  {
+    if (std::holds_alternative<ref>(val))
+    {
+      auto r = std::get<ref>(val).get();
+      auto ptr = ami_unwrap(r.internal_get(field));
+      return *ptr = std::move(other);
+    }
+
+    auto ptr = ami_unwrap(internal_get(field));
+    return *ptr = std::move(other);
+  }
+
+  std::expected<value*, std::string> value::internal_get(const std::string& field)
+  {
+    if (!std::holds_alternative<object>(val))
+    {
+      return fail("cannot get field from a non-object!");
+    }
+
+    auto& thing = std::get<object>(val);
+    if (!thing.contains(field))
+    {
+      return fail("failed to find field " + field + " in object!");
+    }
+
+    return &thing[field];
   }
 
   std::string repeat(const std::string& input, size_t num)

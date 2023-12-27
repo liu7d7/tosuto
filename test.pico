@@ -9,13 +9,13 @@ hi : argv
 
   log("yo" + "hi") }
 
-x := 0
+x := a* * 3
 
 tick
 { x++
   log(x) }
 
-key : id key action
+key : id key* action
 { if action <> "press" | id <> 1
   { ret }
 

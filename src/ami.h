@@ -222,12 +222,12 @@ namespace ami
   struct fn_def_node : public node
   {
     std::string name;
-    std::vector<std::string> args;
+    std::vector<std::pair<std::string, bool>> args;
     node* body;
 
     fn_def_node(
       std::string name,
-      std::vector<std::string> args,
+      std::vector<std::pair<std::string, bool>> args,
       node* body, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -390,6 +390,16 @@ namespace ami
     size_t idx;
     token tok, next;
 
+    struct state
+    {
+      size_t idx;
+      token tok, next;
+    };
+
+    state save_state();
+
+    void set_state(state const& s);
+
     explicit parser(std::vector<token> toks);
 
     void advance();
@@ -427,15 +437,20 @@ namespace ami
   {
     using interpret_result = std::expected<value, std::string>;
     using builtin_fn = std::function<std::expected<value, std::string>(std::vector<value> const&, symbol_table const&)>;
+    using object = std::unordered_map<std::string, value>;
+    using ref = std::reference_wrapper<value>;
+
+    static value sym_false, sym_true, sym_nil;
 
     std::variant<
       double,
       std::string,
       bool,
-      std::unordered_map<std::string, value>,
+      object,
       fn_def_node*,
       builtin_fn,
-      nil_type> val;
+      nil_type,
+      ref> val;
 
     explicit value(decltype(val) val);
 
@@ -446,29 +461,34 @@ namespace ami
 
     std::string type_name() const;
 
-    interpret_result add(value const& other);
+    interpret_result add(value const& other) const;
 
-    interpret_result sub(value const& other);
+    interpret_result sub(value const& other) const;
 
-    interpret_result mul(value const& other);
+    interpret_result mul(value const& other) const;
 
-    interpret_result call(std::vector<value> const& args, symbol_table& sym);
+    interpret_result call(std::vector<value> const& args, symbol_table& sym) const;
 
-    interpret_result div(value const& other);
+    interpret_result div(value const& other) const;
 
-    interpret_result mod(value const& other);
+    interpret_result mod(value const& other) const;
 
     interpret_result get(std::string const& field);
 
-    interpret_result set(std::string const& field);
+    interpret_result set(std::string const& field, value other);
 
-    bool truthy();
+    std::string display() const;
 
-    interpret_result invert();
+    bool truthy() const;
 
-    interpret_result eq(value const& other);
+    interpret_result invert() const;
 
-    interpret_result neq(value const& other);
+    interpret_result eq(value const& other) const;
+
+    interpret_result neq(value const& other) const;
+
+  private:
+    std::expected<value*, std::string> internal_get(std::string const& field);
   };
 
   using interpret_result = value::interpret_result;
@@ -478,8 +498,8 @@ namespace ami
     symbol_table* parent = nullptr;
     std::unordered_map<std::string, value> vals;
 
-    explicit symbol_table(symbol_table* parent,
-                          std::unordered_map<std::string, value> vals);
+    explicit symbol_table(std::unordered_map<std::string, value> vals,
+                          symbol_table* parent = nullptr);
 
     interpret_result const& get(std::string const& name) const;
 

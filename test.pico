@@ -1,0 +1,23 @@
+// goal: lua-like typing system, compiled to bytecode, bytecode VM in c++
+// current: parser done
+// current task: work on interpreter
+
+hi : argv
+{ x :=
+  [| a = 3
+     b = 4 |]
+
+  log("yo" + "hi") }
+
+x := 0
+
+tick
+{ x++
+  log(x) }
+
+key : id key action
+{ if action <> "press" | id <> 1
+  { ret }
+
+  for i : 0..3
+  { log(i) } }

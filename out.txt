@@ -1,0 +1,109 @@
+block: [
+  fn_def_node: {
+    name: hi,
+    args: [argv],
+    body: block: [
+      var_def_node: {
+        name: x,
+        value: bin_op_node: {
+          a: number_node: 3.000000
+          b: number_node: 4.000000
+        },
+      },
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: log,
+        },
+        args: [
+          bin_op_node: {
+            op: add,
+            lhs: string_node: "yo"
+            rhs: string_node: "hi"
+          }
+        ],
+      },
+    ]
+  },
+  var_def_node: {
+    name: x,
+    value: number_node: 0.000000,
+  },
+  fn_def_node: {
+    name: tick,
+    args: [],
+    body: block: [
+      un_op_node: {
+        op: inc,
+        target: field_get_node: {
+          target: nil,
+          field: x,
+        }
+      },
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: log,
+        },
+        args: [
+          field_get_node: {
+            target: nil,
+            field: x,
+          }
+        ],
+      },
+    ]
+  },
+  fn_def_node: {
+    name: key,
+    args: [id, key, action],
+    body: block: [
+      if_stmt_node: {
+        cases: [
+          case{
+            cond: bin_op_node: {
+              op: or,
+              lhs: bin_op_node: {
+                op: not_equal,
+                lhs: field_get_node: {
+                  target: nil,
+                  field: action,
+                }
+                rhs: string_node: "press"
+              }
+              rhs: bin_op_node: {
+                op: not_equal,
+                lhs: field_get_node: {
+                  target: nil,
+                  field: id,
+                }
+                rhs: number_node: 1.000000
+              }
+            }
+            body: block: [
+              ret,
+            ]
+          }
+        ]
+      },
+      for_node: {
+        id: i,
+        iterable: range_node: 0.000000..3.000000,
+        body: block: [
+          call_node: {
+            callee: field_get_node: {
+              target: nil,
+              field: log,
+            },
+            args: [
+              field_get_node: {
+                target: nil,
+                field: i,
+              }
+            ],
+          },
+        ],
+      },
+    ]
+  },
+]

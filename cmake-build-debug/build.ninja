@@ -61,6 +61,30 @@ build CMakeFiles/ami.dir/src/ami.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/
   OBJECT_DIR = CMakeFiles\ami.dir
   OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
 
+build CMakeFiles/ami.dir/src/lex.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/lex.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\lex.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
+
+build CMakeFiles/ami.dir/src/parse.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/parse.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\parse.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
+
+build CMakeFiles/ami.dir/src/interpret.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/interpret.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\interpret.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
+
+build CMakeFiles/ami.dir/src/value.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/value.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\value.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target ami
@@ -69,7 +93,7 @@ build CMakeFiles/ami.dir/src/ami.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/
 #############################################
 # Link the executable ami.exe
 
-build ami.exe: CXX_EXECUTABLE_LINKER__ami_Debug CMakeFiles/ami.dir/main.cpp.obj CMakeFiles/ami.dir/src/ami.cpp.obj
+build ami.exe: CXX_EXECUTABLE_LINKER__ami_Debug CMakeFiles/ami.dir/main.cpp.obj CMakeFiles/ami.dir/src/ami.cpp.obj CMakeFiles/ami.dir/src/lex.cpp.obj CMakeFiles/ami.dir/src/parse.cpp.obj CMakeFiles/ami.dir/src/interpret.cpp.obj CMakeFiles/ami.dir/src/value.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\ami.dir

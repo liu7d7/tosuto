@@ -1,0 +1,23 @@
+// lua-like typing system
+// currently tree walk interpreter in c++
+
+hi : argv {
+  z := x + y
+  w := x.`-`.(y)
+  log(z)
+  log(w)
+  log(z.dot.(w))
+  log(z.perp.())
+}
+
+vec := [|
+  `+`    : lhs* rhs* -> vec.new.(lhs.x + rhs.x, lhs.y + rhs.y),
+  `-`    : lhs* rhs* -> vec.new.(lhs.x - rhs.x, lhs.y - rhs.y),
+  dot    : lhs* rhs* -> lhs.x * rhs.x + lhs.y * rhs.y,
+  perp   : my* -> vec.new.(-my.y, my.x),
+  to_str : my* -> "vec{x=" + to_str(my.x) + ", y=" + to_str(my.y) + "}",
+  new    : my* x y -> my with [| x = x, y = y |]
+|]
+
+x := vec.new.(3, 2)
+y := vec.new.(7, 3)

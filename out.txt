@@ -1,13 +1,39 @@
 block: [
   fn_def_node: {
-    name: hi,
+    name: main,
     args: [argv],
     body: block: [
       var_def_node: {
-        name: x,
+        name: z,
         value: bin_op_node: {
-          a: number_node: 3.000000
-          b: number_node: 4.000000
+          op: add,
+          lhs: field_get_node: {
+            target: nil,
+            field: x,
+          }
+          rhs: field_get_node: {
+            target: nil,
+            field: y,
+          }
+        },
+      },
+      var_def_node: {
+        name: w,
+        value: call_node: {
+          callee: field_get_node: {
+            target: field_get_node: {
+              target: nil,
+              field: x,
+            },
+            field: -,
+          },
+          is_member: 1,
+          args: [
+            field_get_node: {
+              target: nil,
+              field: y,
+            }
+          ],
         },
       },
       call_node: {
@@ -15,105 +41,359 @@ block: [
           target: nil,
           field: log,
         },
+        is_member: 0,
         args: [
-          bin_op_node: {
-            op: add,
-            lhs: string_node: "yo"
-            rhs: string_node: "hi"
+          field_get_node: {
+            target: nil,
+            field: z,
+          }
+        ],
+      },
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: log,
+        },
+        is_member: 0,
+        args: [
+          field_get_node: {
+            target: nil,
+            field: w,
+          }
+        ],
+      },
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: log,
+        },
+        is_member: 0,
+        args: [
+          call_node: {
+            callee: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: z,
+              },
+              field: dot,
+            },
+            is_member: 1,
+            args: [
+              field_get_node: {
+                target: nil,
+                field: w,
+              }
+            ],
+          }
+        ],
+      },
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: log,
+        },
+        is_member: 0,
+        args: [
+          call_node: {
+            callee: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: z,
+              },
+              field: perp,
+            },
+            is_member: 1,
+            args: [
+
+            ],
           }
         ],
       },
     ]
   },
   var_def_node: {
-    name: x,
+    name: vec,
     value: bin_op_node: {
-      op: mul,
-      lhs: un_op_node: {
-        op: mul,
-        target: field_get_node: {
-          target: nil,
-          field: a,
-        }
-      }
-      rhs: number_node: 3.000000
-    },
-  },
-  fn_def_node: {
-    name: tick,
-    args: [],
-    body: block: [
-      un_op_node: {
-        op: inc,
-        target: field_get_node: {
-          target: nil,
-          field: x,
-        }
-      },
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: log,
-        },
-        args: [
-          field_get_node: {
-            target: nil,
-            field: x,
-          }
-        ],
-      },
-    ]
-  },
-  fn_def_node: {
-    name: key,
-    args: [id, key*, action],
-    body: block: [
-      if_stmt_node: {
-        cases: [
-          case{
-            cond: bin_op_node: {
-              op: or,
-              lhs: bin_op_node: {
-                op: not_equal,
-                lhs: field_get_node: {
+      +: fn_def_node: {
+        name: ,
+        args: [lhs*, rhs*],
+        body: call_node: {
+          callee: field_get_node: {
+            target: field_get_node: {
+              target: nil,
+              field: vec,
+            },
+            field: new,
+          },
+          is_member: 1,
+          args: [
+            bin_op_node: {
+              op: add,
+              lhs: field_get_node: {
+                target: field_get_node: {
                   target: nil,
-                  field: action,
-                }
-                rhs: string_node: "press"
+                  field: lhs,
+                },
+                field: x,
               }
-              rhs: bin_op_node: {
-                op: not_equal,
-                lhs: field_get_node: {
+              rhs: field_get_node: {
+                target: field_get_node: {
                   target: nil,
-                  field: id,
-                }
-                rhs: number_node: 1.000000
+                  field: rhs,
+                },
+                field: x,
+              }
+            },
+            bin_op_node: {
+              op: add,
+              lhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: lhs,
+                },
+                field: y,
+              }
+              rhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: rhs,
+                },
+                field: y,
               }
             }
-            body: block: [
-              ret,
-            ]
-          }
-        ]
-      },
-      for_node: {
-        id: i,
-        iterable: range_node: 0.000000..3.000000,
-        body: block: [
-          call_node: {
-            callee: field_get_node: {
+          ],
+        }
+      }
+      -: fn_def_node: {
+        name: ,
+        args: [lhs*, rhs*],
+        body: call_node: {
+          callee: field_get_node: {
+            target: field_get_node: {
               target: nil,
-              field: log,
+              field: vec,
             },
-            args: [
-              field_get_node: {
-                target: nil,
-                field: i,
-              }
-            ],
+            field: new,
           },
-        ],
+          is_member: 1,
+          args: [
+            bin_op_node: {
+              op: sub,
+              lhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: lhs,
+                },
+                field: x,
+              }
+              rhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: rhs,
+                },
+                field: x,
+              }
+            },
+            bin_op_node: {
+              op: sub,
+              lhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: lhs,
+                },
+                field: y,
+              }
+              rhs: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: rhs,
+                },
+                field: y,
+              }
+            }
+          ],
+        }
+      }
+      dot: fn_def_node: {
+        name: ,
+        args: [lhs*, rhs*],
+        body: bin_op_node: {
+          op: add,
+          lhs: bin_op_node: {
+            op: mul,
+            lhs: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: lhs,
+              },
+              field: x,
+            }
+            rhs: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: rhs,
+              },
+              field: x,
+            }
+          }
+          rhs: bin_op_node: {
+            op: mul,
+            lhs: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: lhs,
+              },
+              field: y,
+            }
+            rhs: field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: rhs,
+              },
+              field: y,
+            }
+          }
+        }
+      }
+      perp: fn_def_node: {
+        name: ,
+        args: [my*],
+        body: call_node: {
+          callee: field_get_node: {
+            target: field_get_node: {
+              target: nil,
+              field: vec,
+            },
+            field: new,
+          },
+          is_member: 1,
+          args: [
+            un_op_node: {
+              op: sub,
+              target: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: my,
+                },
+                field: y,
+              }
+            },
+            field_get_node: {
+              target: field_get_node: {
+                target: nil,
+                field: my,
+              },
+              field: x,
+            }
+          ],
+        }
+      }
+      to_str: fn_def_node: {
+        name: ,
+        args: [my*],
+        body: bin_op_node: {
+          op: add,
+          lhs: bin_op_node: {
+            op: add,
+            lhs: bin_op_node: {
+              op: add,
+              lhs: bin_op_node: {
+                op: add,
+                lhs: string_node: "vec{x="
+                rhs: call_node: {
+                  callee: field_get_node: {
+                    target: nil,
+                    field: to_str,
+                  },
+                  is_member: 0,
+                  args: [
+                    field_get_node: {
+                      target: field_get_node: {
+                        target: nil,
+                        field: my,
+                      },
+                      field: x,
+                    }
+                  ],
+                }
+              }
+              rhs: string_node: ", y="
+            }
+            rhs: call_node: {
+              callee: field_get_node: {
+                target: nil,
+                field: to_str,
+              },
+              is_member: 0,
+              args: [
+                field_get_node: {
+                  target: field_get_node: {
+                    target: nil,
+                    field: my,
+                  },
+                  field: y,
+                }
+              ],
+            }
+          }
+          rhs: string_node: "}"
+        }
+      }
+      new: fn_def_node: {
+        name: ,
+        args: [my*, x, y],
+        body: bin_op_node: {
+          op: with,
+          lhs: field_get_node: {
+            target: nil,
+            field: my,
+          }
+          rhs: bin_op_node: {
+            x: field_get_node: {
+              target: nil,
+              field: x,
+            }
+            y: field_get_node: {
+              target: nil,
+              field: y,
+            }
+          }
+        }
+      }
+    },
+  },
+  var_def_node: {
+    name: x,
+    value: call_node: {
+      callee: field_get_node: {
+        target: field_get_node: {
+          target: nil,
+          field: vec,
+        },
+        field: new,
       },
-    ]
+      is_member: 1,
+      args: [
+        number_node: 3.000000,
+        number_node: 2.000000
+      ],
+    },
+  },
+  var_def_node: {
+    name: y,
+    value: call_node: {
+      callee: field_get_node: {
+        target: field_get_node: {
+          target: nil,
+          field: vec,
+        },
+        field: new,
+      },
+      is_member: 1,
+      args: [
+        number_node: 7.000000,
+        number_node: 3.000000
+      ],
+    },
   },
 ]

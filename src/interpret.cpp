@@ -1,10 +1,8 @@
 #include <iostream>
 #include "interpret.h"
 
-namespace ami
-{
-  std::string repeat(std::string const& input, size_t num)
-  {
+namespace ami {
+  std::string repeat(std::string const& input, size_t num) {
     std::string ret;
     ret.reserve(input.size() * num);
     while (num--)
@@ -14,43 +12,36 @@ namespace ami
 
   symbol_table::symbol_table(std::unordered_map<std::string, value_ptr> vals,
                              symbol_table* par) : vals(std::move(vals)),
-                                                  par(par)
-  {}
+                                                  par(par) {}
 
-  interpret_result symbol_table::get(std::string const& name)
-  {
+  interpret_result symbol_table::get(std::string const& name) {
     if (vals.contains(name)) return vals[name];
     if (!par) return std::unexpected("Failed to find " + name);
     return par->get(name);
   }
 
-  void symbol_table::set(std::string const& name, value_ptr const& val)
-  {
+  void symbol_table::set(std::string const& name, value_ptr const& val) {
     vals[name] = val;
   }
 
-  symbol_table::symbol_table() : par(nullptr), vals()
-  {
+  symbol_table::symbol_table() : par(nullptr), vals() {
   }
 
   std::unexpected<std::string>
-  interpreter::fail(node* nod, std::source_location loc)
-  {
+  interpreter::fail(node* nod, std::source_location loc) {
     return std::unexpected(
       "Failed to interpret " + nod->pretty(0) + " in " + loc.function_name() +
       " on line " + std::to_string(loc.line()));
   }
 
   std::unexpected<std::string>
-  interpreter::fail(std::string const& nod, std::source_location loc)
-  {
+  interpreter::fail(std::string const& nod, std::source_location loc) {
     return std::unexpected(
       nod + "\nin " + loc.function_name() +
       " on line " + std::to_string(loc.line()));
   }
 
-  interpret_result interpreter::fn_def(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::fn_def(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(fn_def_node*, nod);
 
     sym.set(it->name, std::make_shared<value>(it));
@@ -58,27 +49,20 @@ namespace ami
   }
 
   std::expected<std::pair<value_ptr, symbol_table>, std::string>
-  interpreter::block_with_symbols(node* nod, symbol_table& sym)
-  {
+  interpreter::block_with_symbols(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(block_node*, nod);
 
     symbol_table new_sym{{}, &sym};
 
     value_ptr val;
-    for (auto const& stmt: it->exprs)
-    {
+    for (auto const& stmt: it->exprs) {
       val = ami_unwrap(interpret(stmt, sym));
       // TODO: figure out what to do with has_ret & has_next
-      if (stmt->type == node_type::ret)
-      {
+      if (stmt->type == node_type::ret) {
         return std::make_pair(val, new_sym);
-      }
-      else if (stmt->type == node_type::next)
-      {
+      } else if (stmt->type == node_type::next) {
         return std::make_pair(val, new_sym);
-      }
-      else if (stmt->type == node_type::brk)
-      {
+      } else if (stmt->type == node_type::brk) {
         has_break = true;
         return std::make_pair(val, new_sym);
       }
@@ -87,29 +71,22 @@ namespace ami
     return std::make_pair(val, new_sym);
   }
 
-  interpret_result interpreter::call(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::call(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(call_node*, nod);
 
     value_ptr fn = ami_unwrap(interpret(it->callee, sym));
 
     std::string failed;
     std::vector<value_ptr> args;
-    if (it->is_member)
-    {
-      if (it->callee->type == node_type::field_get)
-      {
+    if (it->is_member) {
+      if (it->callee->type == node_type::field_get) {
         auto fget = ami_dyn_cast(field_get_node*, it->callee);
         if (!fget->target) return fail(nod);
         value_ptr first = ami_unwrap(interpret(fget->target, sym));
         args.push_back(first);
-      }
-      else if (fn->is<value::object>())
-      {
+      } else if (fn->is<value::object>()) {
         args.push_back(fn);
-      }
-      else
-      {
+      } else {
         return fail(
           "Don't know how to handle member on this one: " + nod->pretty(0));
       }
@@ -118,11 +95,9 @@ namespace ami
     std::transform(it->args.begin(),
                    it->args.end(),
                    std::back_inserter(args),
-                   [this, &sym, &failed](node* const& a)
-                   {
+                   [this, &sym, &failed](node* const& a) {
                      auto attempt = interpret(a, sym);
-                     if (!attempt.has_value())
-                     {
+                     if (!attempt.has_value()) {
                        failed = attempt.error();
                        return value::sym_nil;
                      }
@@ -138,49 +113,38 @@ namespace ami
     return ret;
   }
 
-  interpret_result interpreter::un_op(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::un_op(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(un_op_node*, nod);
 
-    switch (it->op)
-    {
-      case tok_type::sub:
-      {
-        value_ptr val = ami_unwrap(interpret(it->target, sym));
-        return val->negate();
-      }
-      case tok_type::add:
-      {
-        value_ptr val = ami_unwrap(interpret(it->target, sym));
-        if (!val->is<value::num>())
-        {
-          return fail(nod);
-        }
-
-        return std::make_shared<value>(val->get<value::num>());
-      }
-      case tok_type::mul:
-      {
-        value_ptr val = ami_unwrap(interpret(it->target, sym));
-        return val->deref(sym);
-      }
-      default:
+    switch (it->op) {
+    case tok_type::sub: {
+      value_ptr val = ami_unwrap(interpret(it->target, sym));
+      return val->negate();
+    }
+    case tok_type::add: {
+      value_ptr val = ami_unwrap(interpret(it->target, sym));
+      if (!val->is<value::num>()) {
         return fail(nod);
+      }
+
+      return std::make_shared<value>(val->get<value::num>());
+    }
+    case tok_type::mul: {
+      value_ptr val = ami_unwrap(interpret(it->target, sym));
+      return val->deref(sym);
+    }
+    default:return fail(nod);
     }
   }
 
   interpret_result
-  interpreter::assign(node* nod, value_ptr const& val, symbol_table& sym)
-  {
+  interpreter::assign(node* nod, value_ptr const& val, symbol_table& sym) {
     auto it = ami_dyn_cast(field_get_node*, nod);
 
-    if (it->target)
-    {
+    if (it->target) {
       value_ptr obj = ami_unwrap(interpret(it->target, sym));
       return obj->set(it->field, val);
-    }
-    else
-    {
+    } else {
       value_ptr existing = ami_unwrap(sym.get(it->field));
       // TODO: is this the right semantic?
       // if you assign to a reference value, that value will change, but
@@ -191,8 +155,7 @@ namespace ami
     }
   }
 
-  interpret_result interpreter::bin_op(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::bin_op(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(bin_op_node*, nod);
 
 #define AMI_BIN_OP_ONE_CASE_NON_ASSIGN(op) \
@@ -211,76 +174,66 @@ namespace ami
         return assign(it->lhs, res, sym);\
       }
 
-    switch (it->op)
-    {
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(add)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(sub)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mul)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(div)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mod)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(eq)
-      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(neq)
-      AMI_BIN_OP_ONE_CASE_ASSIGN(add)
-      AMI_BIN_OP_ONE_CASE_ASSIGN(sub)
-      AMI_BIN_OP_ONE_CASE_ASSIGN(mul)
-      AMI_BIN_OP_ONE_CASE_ASSIGN(div)
-      AMI_BIN_OP_ONE_CASE_ASSIGN(mod)
-      case tok_type::assign:
-      {
-        value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
-        return assign(it->lhs, rhs, sym);
-      }
-      case tok_type::sym_or:
-      {
-        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-        if (lhs->is_truthy()) return lhs;
-        return interpret(it->rhs, sym);
-      }
-      case tok_type::sym_and:
-      {
-        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-        if (!lhs->is_truthy()) return lhs;
-        return interpret(it->rhs, sym);
-      }
-      case tok_type::key_with:
-      {
-        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-        if (!lhs->is<value::object>()) return fail(nod);
+    switch (it->op) {
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(add)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(sub)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mul)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(div)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mod)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(eq)
+    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(neq)
+    AMI_BIN_OP_ONE_CASE_ASSIGN(add)
+    AMI_BIN_OP_ONE_CASE_ASSIGN(sub)
+    AMI_BIN_OP_ONE_CASE_ASSIGN(mul)
+    AMI_BIN_OP_ONE_CASE_ASSIGN(div)
+    AMI_BIN_OP_ONE_CASE_ASSIGN(mod)
+    case tok_type::assign: {
+      value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
+      return assign(it->lhs, rhs, sym);
+    }
+    case tok_type::sym_or: {
+      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+      if (lhs->is_truthy()) return lhs;
+      return interpret(it->rhs, sym);
+    }
+    case tok_type::sym_and: {
+      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+      if (!lhs->is_truthy()) return lhs;
+      return interpret(it->rhs, sym);
+    }
+    case tok_type::key_with: {
+      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+      if (!lhs->is<value::object>()) return fail(nod);
 
-        value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
-        if (!lhs->is<value::object>()) return fail(nod);
+      value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
+      if (!lhs->is<value::object>()) return fail(nod);
 
-        auto lhs_fields = value::object{lhs->get<value::object>()};
-        auto& rhs_fields = rhs->get<value::object>();
+      auto lhs_fields = value::object{lhs->get<value::object>()};
+      auto& rhs_fields = rhs->get<value::object>();
 
-        for (auto const& [k, v] : rhs_fields)
-        {
-          lhs_fields[k] = v;
-        }
-
-        return std::make_shared<value>(lhs_fields);
+      for (auto const& [k, v]: rhs_fields) {
+        lhs_fields[k] = v;
       }
-      default:
-        return fail(nod);
+
+      return std::make_shared<value>(lhs_fields);
+    }
+    default:return fail(nod);
     }
   }
 
-  interpret_result interpreter::number(node* nod, symbol_table&)
-  {
+  interpret_result interpreter::number(node* nod, symbol_table&) {
     auto it = ami_dyn_cast(number_node*, nod);
 
     return std::make_shared<value>(it->value);
   }
 
-  interpret_result interpreter::string(node* nod, symbol_table&)
-  {
+  interpret_result interpreter::string(node* nod, symbol_table&) {
     auto it = ami_dyn_cast(string_node*, nod);
 
     return std::make_shared<value>(it->value);
   }
 
-  interpret_result interpreter::object(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::object(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(object_node*, nod);
 
     std::string failed;
@@ -289,11 +242,9 @@ namespace ami
       it->fields.begin(),
       it->fields.end(),
       std::back_inserter(fields),
-      [this, &sym, &failed](std::pair<std::string, node*> const& field)
-      {
+      [this, &sym, &failed](std::pair<std::string, node*> const& field) {
         auto attempt = interpret(field.second, sym);
-        if (!attempt.has_value())
-        {
+        if (!attempt.has_value()) {
           failed = attempt.error();
           return std::pair{""s, value::sym_nil};
         }
@@ -308,37 +259,29 @@ namespace ami
       std::unordered_map{fields.begin(), fields.end()});
   }
 
-  interpret_result interpreter::field_get(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::field_get(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(field_get_node*, nod);
 
-    if (it->target)
-    {
+    if (it->target) {
       auto lhs = ami_unwrap(interpret(it->target, sym));
       return lhs->get(it->field);
-    }
-    else
-    {
+    } else {
       return sym.get(it->field);
     }
   }
 
-  interpret_result interpreter::if_stmt(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::if_stmt(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(if_node*, nod);
 
-    for (auto const& branch: it->cases)
-    {
+    for (auto const& branch: it->cases) {
       value_ptr cond = ami_unwrap(interpret(branch.first, sym));
-      if (cond->is_truthy())
-      {
+      if (cond->is_truthy()) {
         value_ptr res = ami_unwrap(interpret(branch.second, sym));
         return res;
       }
     }
 
-    if (it->else_case)
-    {
+    if (it->else_case) {
       value_ptr res = ami_unwrap(interpret(it->else_case, sym));
       return res;
     }
@@ -346,12 +289,10 @@ namespace ami
     return value::sym_nil;
   }
 
-  interpret_result interpreter::ret(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::ret(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(ret_node*, nod);
 
-    if (it->ret_val)
-    {
+    if (it->ret_val) {
       auto ret_val = ami_unwrap(interpret(it->ret_val, sym));
       return ret_val;
     }
@@ -359,13 +300,11 @@ namespace ami
     return value::sym_nil;
   }
 
-  interpret_result interpreter::do_nothing(node*, symbol_table&)
-  {
+  interpret_result interpreter::do_nothing(node*, symbol_table&) {
     return value::sym_nil;
   }
 
-  interpret_result interpreter::var_def(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::var_def(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(var_def_node*, nod);
 
     auto value = ami_unwrap(interpret(it->value, sym));
@@ -373,8 +312,7 @@ namespace ami
     return value;
   }
 
-  interpret_result interpreter::range(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::range(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(range_node*, nod);
 
     auto start = ami_unwrap(interpret(it->start, sym));
@@ -383,8 +321,7 @@ namespace ami
     return std::make_shared<value>(value::range{start, finish});
   }
 
-  interpret_result interpreter::for_loop(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::for_loop(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(for_node*, nod);
 
     auto iterable = ami_unwrap(interpret(it->iterable, sym));
@@ -394,11 +331,9 @@ namespace ami
 
     bool cont_val = ami_unwrap(begin->has_next(sym));
 
-    while (cont_val)
-    {
+    while (cont_val) {
       ami_discard(interpret(it->body, new_sym));
-      if (has_break)
-      {
+      if (has_break) {
         reset_state();
         break;
       }
@@ -412,8 +347,7 @@ namespace ami
     return value::sym_nil;
   }
 
-  interpret_result interpreter::interpret(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::interpret(node* nod, symbol_table& sym) {
     return (this->*interpreters[nod->type])(nod, sym);
   }
 
@@ -441,20 +375,18 @@ namespace ami
       {node_type::anon_fn_def, &interpreter::anon_fn_def},
     };
 
-  interpret_result interpreter::anon_fn_def(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::anon_fn_def(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(fn_def_node*, nod);
     return std::make_shared<value>(it);
   }
 
-  interpret_result interpreter::block(node* nod, symbol_table& sym)
-  {
+  interpret_result interpreter::block(node* nod, symbol_table& sym) {
     auto thing = ami_unwrap(block_with_symbols(nod, sym));
     return thing.first;
   }
 
-  std::expected<symbol_table, std::string> interpreter::global(node* nod, symbol_table& sym)
-  {
+  std::expected<symbol_table, std::string>
+  interpreter::global(node* nod, symbol_table& sym) {
     auto thing = ami_unwrap(block_with_symbols(nod, sym));
     return thing.second;
   }

@@ -44,3 +44,12 @@
 7	3695	7257667703850254	CMakeFiles/ami.dir/src/value.cpp.obj	dd4a3d9259d62dc6
 11	3962	7257667706512670	CMakeFiles/ami.dir/src/interpret.cpp.obj	976e443790076781
 3963	6240	7257667729375397	ami.exe	337eba45c8beb3e8
+16	1309	7257690322139751	CMakeFiles/ami.dir/src/ami.cpp.obj	f7e24904e9232ead
+11	2031	7257690329332795	CMakeFiles/ami.dir/src/lex.cpp.obj	df54a206c286d0c0
+20	2427	7257690333273460	CMakeFiles/ami.dir/src/parse.cpp.obj	52c6fc6b63789966
+5	2441	7257690333421485	CMakeFiles/ami.dir/main.cpp.obj	f4fac1eb16b00c0b
+29	3219	7257690341109782	CMakeFiles/ami.dir/src/value.cpp.obj	dd4a3d9259d62dc6
+24	3491	7257690343842257	CMakeFiles/ami.dir/src/interpret.cpp.obj	976e443790076781
+3491	5468	7257690363654193	ami.exe	337eba45c8beb3e8
+3	1634	7257697513865151	CMakeFiles/ami.dir/main.cpp.obj	f4fac1eb16b00c0b
+1635	3615	7257697533631217	ami.exe	337eba45c8beb3e8

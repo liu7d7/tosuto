@@ -1,9 +1,12 @@
 // lua-like typing system
 // currently tree walk interpreter in c++
 
-hi : argv {
+main : argv {
+  // calls the `+` member function
   z := x + y
+  // equivalent to x - y
   w := x.`-`.(y)
+
   log(z)
   log(w)
   log(z.dot.(w))

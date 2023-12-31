@@ -2,235 +2,184 @@
 #include "value.h"
 #include "interpret.h"
 
-namespace ami
-{
-  value::value(value_type val) : val(std::move(val))
-  {}
+namespace ami {
+  value::value(value_type val) : val(std::move(val)) {}
 
-  std::string value::type_name() const
-  {
-    switch (val.index())
-    {
-      case double_idx:
-        return "number";
-      case bool_idx:
-        return "boolean";
-      case string_idx:
-        return "string";
-      case object_idx:
-        return "table";
-      case array_idx:
-        return "array";
-      case function_idx:
-      case builtin_function_idx:
-        return "function";
-      case range_idx:
-        return "range";
-      case range_iter_idx:
-        return "range_iter";
-      case array_iter_idx:
-        return "array_iter";
-      case nil_idx:
-        return "nil";
+  std::string value::type_name() const {
+    switch (val.index()) {
+    case double_idx:return "number";
+    case bool_idx:return "boolean";
+    case string_idx:return "string";
+    case object_idx:return "table";
+    case array_idx:return "array";
+    case function_idx:
+    case builtin_function_idx:return "function";
+    case range_idx:return "range";
+    case range_iter_idx:return "range_iter";
+    case array_iter_idx:return "array_iter";
+    case nil_idx:return "nil";
     }
 
     std::unreachable();
   }
 
-  std::expected<std::string, std::string> value::display(symbol_table& sym)
-  {
-    switch (val.index())
-    {
-      case double_idx:
-      {
-        if (fabs(floor(get<double>()) - get<double>()) <
-            std::numeric_limits<double>::epsilon())
-        {
-          return std::to_string((long long) floor(get<double>()));
-        }
-
-        return std::to_string(get<double>());
+  std::expected<std::string, std::string> value::display(symbol_table& sym) {
+    switch (val.index()) {
+    case double_idx: {
+      if (fabs(floor(get<double>()) - get<double>()) <
+          std::numeric_limits<double>::epsilon()) {
+        return std::to_string((long long) floor(get<double>()));
       }
-      case bool_idx:
-        return std::to_string(get<bool>());
-      case string_idx:
-        return get<std::string>();
-      case object_idx:
-      {
-        auto to_str = get("to_str");
 
-        if (to_str.has_value())
-        {
-          auto res = ami_unwrap(to_str.value()->call({shared_from_this()}, sym));
-          if (!res->is<std::string>())
-            return interpreter::fail("Expected string from to_str!");
+      return std::to_string(get<double>());
+    }
+    case bool_idx:return std::to_string(get<bool>());
+    case string_idx:return get<std::string>();
+    case object_idx: {
+      auto to_str = get("to_str");
 
-          return res->get<std::string>();
-        }
+      if (to_str.has_value()) {
+        auto res = ami_unwrap(to_str.value()->call({shared_from_this()}, sym));
+        if (!res->is<std::string>())
+          return interpreter::fail("Expected string from to_str!");
 
-        std::string buf = "{";
-        for (auto const& [k, v]: get<object>())
-        {
-          buf += k;
-          buf += '=';
-          auto disp = ami_unwrap(v->display(sym));
-          buf += disp;
-          buf += ", ";
-        }
-
-        if (buf.back() != '{') buf = buf.substr(0, buf.length() - 2);
-        return buf + '}';
+        return res->get<std::string>();
       }
-      case function_idx:
-      case builtin_function_idx:
-        return "function";
-      case range_idx:
-      {
-        auto first = ami_unwrap(get<range>().first->display(sym));
-        auto second = ami_unwrap(get<range>().second->display(sym));
-        return first + ".." + second;
+
+      std::string buf = "{";
+      for (auto const& [k, v]: get<object>()) {
+        buf += k;
+        buf += '=';
+        auto disp = ami_unwrap(v->display(sym));
+        buf += disp;
+        buf += ", ";
       }
-      case range_iter_idx:
-      case nil_idx:
-      case array_iter_idx:
-        return type_name();
+
+      if (buf.back() != '{') buf = buf.substr(0, buf.length() - 2);
+      return buf + '}';
+    }
+    case function_idx:
+    case builtin_function_idx:return "function";
+    case range_idx: {
+      auto first = ami_unwrap(get<range>().first->display(sym));
+      auto second = ami_unwrap(get<range>().second->display(sym));
+      return first + ".." + second;
+    }
+    case range_iter_idx:
+    case nil_idx:
+    case array_iter_idx:return type_name();
     }
 
     std::unreachable();
   }
 
-  interpret_result value::mod(value_ptr& other, symbol_table& sym)
-  {
+  interpret_result value::mod(value_ptr& other, symbol_table& sym) {
     // special case for if they're both numbers
-    if (is<num>() && other->is<num>())
-    {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(fmod(get<num>(), other->get<num>()));
     }
 
     auto mod = ami_unwrap(get("%"));
-    if (!mod->is<function>() && !mod->is<builtin_function>())
-    {
+    if (!mod->is<function>() && !mod->is<builtin_function>()) {
       return interpreter::fail("Mod member not found on type " + type_name());
     }
 
     return mod->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::div(value_ptr& other, symbol_table& sym)
-  {
-    if (is<num>() && other->is<num>())
-    {
+  interpret_result value::div(value_ptr& other, symbol_table& sym) {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(get<num>() / other->get<num>());
     }
 
     auto div = ami_unwrap(get("/"));
-    if (!div->is<function>() && !div->is<builtin_function>())
-    {
+    if (!div->is<function>() && !div->is<builtin_function>()) {
       return interpreter::fail("Div member not found on type " + type_name());
     }
 
     return div->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::mul(ami::value_ptr& other, ami::symbol_table& sym)
-  {
-    if (is<num>() && other->is<num>())
-    {
+  interpret_result value::mul(ami::value_ptr& other, ami::symbol_table& sym) {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(get<num>() * other->get<num>());
     }
 
     auto mul = ami_unwrap(get("*"));
-    if (!mul->is<function>() && !mul->is<builtin_function>())
-    {
+    if (!mul->is<function>() && !mul->is<builtin_function>()) {
       return interpreter::fail("Mul member not found on type " + type_name());
     }
 
     return mul->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::sub(ami::value_ptr& other, ami::symbol_table& sym)
-  {
-    if (is<num>() && other->is<num>())
-    {
+  interpret_result value::sub(ami::value_ptr& other, ami::symbol_table& sym) {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(get<num>() - other->get<num>());
     }
 
     auto sub = ami_unwrap(get("-"));
-    if (!sub->is<function>() && !sub->is<builtin_function>())
-    {
+    if (!sub->is<function>() && !sub->is<builtin_function>()) {
       return interpreter::fail("Sub member not found on type " + type_name());
     }
 
     return sub->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::add(ami::value_ptr& other, ami::symbol_table& sym)
-  {
-    if (is<num>() && other->is<num>())
-    {
+  interpret_result value::add(ami::value_ptr& other, ami::symbol_table& sym) {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(get<num>() + other->get<num>());
     }
 
-    if (is<std::string>() && other->is<std::string>())
-    {
+    if (is<std::string>() && other->is<std::string>()) {
       return std::make_shared<value>(
         get<std::string>() + other->get<std::string>());
     }
 
     auto times = ami_unwrap(get("+"));
-    if (!times->is<function>() && !times->is<builtin_function>())
-    {
+    if (!times->is<function>() && !times->is<builtin_function>()) {
       return interpreter::fail("Add member not found on type " + type_name());
     }
 
     return times->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::eq(ami::value_ptr& other, ami::symbol_table& sym)
-  {
-    if (is<num>() && other->is<num>())
-    {
+  interpret_result value::eq(ami::value_ptr& other, ami::symbol_table& sym) {
+    if (is<num>() && other->is<num>()) {
       return std::make_shared<value>(fabs(get<num>() - other->get<num>()) <
                                      std::numeric_limits<double>::epsilon());
     }
 
     auto eq = ami_unwrap(get("=="));
-    if (!eq->is<function>() && !eq->is<builtin_function>())
-    {
+    if (!eq->is<function>() && !eq->is<builtin_function>()) {
       return interpreter::fail("Eq member not found on type " + type_name());
     }
 
     return eq->call({shared_from_this(), other}, sym);
   }
 
-  interpret_result value::invert()
-  {
+  interpret_result value::invert() {
     return std::make_shared<value>(!is_truthy());
   }
 
-  interpret_result value::neq(ami::value_ptr& other, ami::symbol_table& sym)
-  {
+  interpret_result value::neq(ami::value_ptr& other, ami::symbol_table& sym) {
     auto equ = ami_unwrap(eq(other, sym));
     return equ->invert();
   }
 
-  interpret_result value::negate()
-  {
+  interpret_result value::negate() {
     if (!is<num>()) return interpreter::fail("Can't negate a " + type_name());
     return std::make_shared<value>(-get<num>());
   }
 
-  bool value::is_truthy()
-  {
+  bool value::is_truthy() {
     if (is<bool>()) return get<bool>();
     if (is<nil>()) return false;
     return true;
   }
 
-  std::expected<bool, std::string> value::has_next(symbol_table& sym)
-  {
-    if (is<range_iterator>())
-    {
+  std::expected<bool, std::string> value::has_next(symbol_table& sym) {
+    if (is<range_iterator>()) {
       auto it = get<range_iterator>();
       auto cont = ami_unwrap(it.first->neq(it.second.second, sym));
       return cont->is_truthy();
@@ -242,16 +191,13 @@ namespace ami
     return res->get<bool>();
   }
 
-  interpret_result value::iterator(symbol_table& sym)
-  {
-    if (is<range>())
-    {
+  interpret_result value::iterator(symbol_table& sym) {
+    if (is<range>()) {
       auto ran = get<range>();
       return std::make_shared<value>(range_iterator{ran.first, ran});
     }
 
-    if (is<array>())
-    {
+    if (is<array>()) {
       return std::make_shared<value>(get<array>().begin());
     }
 
@@ -261,15 +207,12 @@ namespace ami
     return res;
   }
 
-  interpret_result value::deref(symbol_table& sym)
-  {
-    if (is<range_iterator>())
-    {
+  interpret_result value::deref(symbol_table& sym) {
+    if (is<range_iterator>()) {
       return get<range_iterator>().first;
     }
 
-    if (is<array_iterator>())
-    {
+    if (is<array_iterator>()) {
       return *get<array_iterator>();
     }
 
@@ -279,18 +222,15 @@ namespace ami
     return res;
   }
 
-  interpret_result value::next(ami::symbol_table& sym)
-  {
-    if (is<range_iterator>())
-    {
+  interpret_result value::next(ami::symbol_table& sym) {
+    if (is<range_iterator>()) {
       auto& it = get<range_iterator>();
       auto next = ami_unwrap(it.first->add(sym_one, sym));
       it.first = next;
       return next;
     }
 
-    if (is<array_iterator>())
-    {
+    if (is<array_iterator>()) {
       get<array_iterator>()++;
       return *get<array_iterator>();
     }
@@ -301,16 +241,14 @@ namespace ami
   }
 
   interpret_result
-  value::set(std::string const& field, ami::value_ptr const& value)
-  {
+  value::set(std::string const& field, ami::value_ptr const& value) {
     if (!is<object>())
       return interpreter::fail("Can't assign field to a " + type_name());
 
     return get<object>()[field] = value;
   }
 
-  interpret_result value::get(std::string const& field)
-  {
+  interpret_result value::get(std::string const& field) {
     if (!is<object>())
       return interpreter::fail("Can't assign field to a " + type_name());
 
@@ -327,10 +265,8 @@ namespace ami
     value::sym_one = std::make_shared<value>(1.0);
 
   interpret_result
-  value::call(std::vector<value_ptr> const& args, symbol_table& sym)
-  {
-    if (is<function>())
-    {
+  value::call(std::vector<value_ptr> const& args, symbol_table& sym) {
+    if (is<function>()) {
       if (get<function>()->args.size() != args.size())
         return interpreter::fail("Unmatching arity when calling functions!");
 
@@ -341,8 +277,7 @@ namespace ami
         get<function>()->args.begin(),
         std::back_inserter(arg_map),
         [](value_ptr const& it,
-           std::pair<std::string, bool> const& arg)
-        {
+           std::pair<std::string, bool> const& arg) {
           return std::make_pair(
             arg.first,
             arg.second ? std::make_shared<value>(it->val) : it);
@@ -354,8 +289,7 @@ namespace ami
       return interp.interpret(get<function>()->body, new_sym);
     }
 
-    if (is<builtin_function>())
-    {
+    if (is<builtin_function>()) {
       if (get<builtin_function>().second.size() != args.size())
         return interpreter::fail("Unmatching arity when calling functions!");
 
@@ -366,8 +300,7 @@ namespace ami
         get<builtin_function>().second.begin(),
         std::back_inserter(arg_map),
         [](value_ptr const& it,
-           std::pair<std::string, bool> const& arg)
-        {
+           std::pair<std::string, bool> const& arg) {
           return std::make_pair(
             arg.first,
             arg.second ? std::make_shared<value>(it->val) : it);
@@ -384,15 +317,12 @@ namespace ami
   }
 
   std::expected<std::vector<std::pair<std::string, bool>>, std::string>
-  value::args()
-  {
-    if (is<function>())
-    {
+  value::args() {
+    if (is<function>()) {
       return get<function>()->args;
     }
 
-    if (is<builtin_function>())
-    {
+    if (is<builtin_function>()) {
       return get<builtin_function>().second;
     }
 

@@ -4,10 +4,8 @@
 #include <utility>
 #include "ami.h"
 
-namespace ami
-{
-  enum class tok_type
-  {
+namespace ami {
+  enum class tok_type {
     id,
     colon,
     l_curly,
@@ -63,8 +61,7 @@ namespace ami
     at,
   };
 
-  static std::string to_string(tok_type type)
-  {
+  static std::string to_string(tok_type type) {
     static const std::string tok_type_to_string[]
       {
         "id",
@@ -125,8 +122,7 @@ namespace ami
     return tok_type_to_string[std::to_underlying(type)];
   }
 
-  struct token
-  {
+  struct token {
     tok_type type;
     std::string lexeme;
     pos begin, end;
@@ -134,8 +130,7 @@ namespace ami
     [[nodiscard]] std::string to_string() const;
   };
 
-  struct lexer
-  {
+  struct lexer {
     std::string text;
     pos cpos = {.idx = 0, .col = 1, .row = 1};
     char ch;

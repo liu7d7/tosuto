@@ -8,17 +8,14 @@
 #include <variant>
 #include "parse.h"
 
-namespace ami
-{
+namespace ami {
   struct value;
   struct symbol_table;
   using value_ptr = std::shared_ptr<value>;
   using interpret_result = std::expected<value_ptr, std::string>;
 
-  struct value : std::enable_shared_from_this<value>
-  {
-    struct nil
-    {
+  struct value : std::enable_shared_from_this<value> {
+    struct nil {
     };
 
     using num = double;
@@ -82,20 +79,17 @@ namespace ami
     interpret_result negate(), invert();
 
     template<typename T>
-    inline bool is() const
-    {
+    inline bool is() const {
       return std::holds_alternative<T>(val);
     }
 
     template<typename T>
-    inline T& get()
-    {
+    inline T& get() {
       return std::get<T>(val);
     }
 
     template<typename T>
-    inline T const& get() const
-    {
+    inline T const& get() const {
       return std::get<T>(val);
     }
 

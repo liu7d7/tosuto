@@ -9,14 +9,12 @@
 #include "parse.h"
 #include "value.h"
 
-namespace ami
-{
+namespace ami {
   using namespace std::string_literals;
 
   std::string repeat(std::string const& input, size_t num);
 
-  struct symbol_table
-  {
+  struct symbol_table {
     std::unordered_map<std::string, value_ptr> vals;
     symbol_table* par = nullptr;
 
@@ -31,12 +29,10 @@ namespace ami
     void set(std::string const& name, value_ptr const& val);
   };
 
-  struct interpreter
-  {
+  struct interpreter {
     bool has_ret = false, has_next = false, has_break = false;
 
-    void reset_state()
-    {
+    void reset_state() {
       has_ret = false, has_next = false, has_break = false;
     }
 
@@ -90,6 +86,7 @@ namespace ami
     std::expected<std::pair<value_ptr, symbol_table>, std::string>
     block_with_symbols(node* nod, symbol_table& sym);
 
-    std::expected<symbol_table, std::string> global(node* nod, symbol_table& sym);
+    std::expected<symbol_table, std::string>
+    global(node* nod, symbol_table& sym);
   };
 }

@@ -6,6 +6,10 @@
 #include "src/interpret.h"
 
 void test_file(std::string const& filename) {
+  std::cout
+    << "testing "
+    << filename
+    << "\n-\n";
   ami::lexer lexer{filename};
   auto toks = lexer.lex();
 
@@ -59,18 +63,29 @@ void test_file(std::string const& filename) {
 
   ami::interpreter interp;
   auto thing = interp.global(*ast, globals);
-  if (!thing.has_value()) throw std::runtime_error(thing.error());
+  if (!thing.has_value()) {
+    std::cerr << thing.error() << '\n';
+    return;
+  }
 
   auto main_try = thing.value().find_first(
     [](std::string const& id, ami::value_ptr const& val) {
       return val->has_deco("entrypoint").value()->get<bool>();
     });
 
-  if (!main_try.has_value()) throw std::runtime_error(main_try.error());
+  if (!main_try.has_value()) {
+    std::cerr << main_try.error() << "\n\n\n";
+    return;
+  }
 
   auto call_try = main_try.value()->call(
     {std::make_shared<ami::value>(filename)}, thing.value());
-  if (!call_try.has_value()) throw std::runtime_error(call_try.error());
+  if (!call_try.has_value()) {
+    std::cerr << call_try.error() << "\n\n\n";
+    return;
+  }
+
+  std::cout << "\n\n";
 }
 
 int main() {

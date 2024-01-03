@@ -55,37 +55,75 @@ namespace ami {
     return new for_node(id.lexeme, iterable, body, begin, body->end);
   }
 
+  std::expected<std::vector<node*>, std::string> parser::decos() {
+    std::vector<node*> decos;
+    while (tok.type == tok_type::at) {
+      pos begin = tok.begin;
+      advance();
+      token id = ami_unwrap(expect(tok_type::id));
+      std::vector<std::pair<std::string, node*>> fields;
+      if (tok.type == tok_type::l_paren) {
+        while (tok.type == tok_type::id) {
+          token field_id = ami_unwrap(expect(tok_type::id));
+          ami_discard(expect(tok_type::assign));
+          node* field_val = ami_unwrap(expr());
+          consume(tok_type::comma);
+          fields.emplace_back(field_id.lexeme, field_val);
+        }
+
+        ami_discard(expect(tok_type::r_paren));
+      }
+
+      decos.push_back(new deco_node(id.lexeme, fields, begin, tok.begin));
+    }
+
+    return decos;
+  }
+
   std::expected<node*, std::string> parser::statement() {
+    auto decor = ami_unwrap(decos());
     if (tok.type == tok_type::id &&
         (next.type == tok_type::colon || next.type == tok_type::l_curly)) {
-      return function();
+      if (decor.empty()) {
+        return function();
+      } else {
+        auto fn = ami_unwrap(function());
+        return new decorated_node(decor, fn, decor.front()->begin, tok.begin);
+      }
     }
 
     switch (tok.type) {
-    case tok_type::key_for: {
-      return for_loop();
-    }
-    case tok_type::key_ret: {
-      token cur = tok;
-      advance();
-      node* ret_val = nullptr;
-      auto exp = expr();
-      if (exp.has_value()) ret_val = exp.value();
+      case tok_type::key_for: {
+        return for_loop();
+      }
+      case tok_type::key_ret: {
+        token cur = tok;
+        advance();
+        node* ret_val = nullptr;
+        auto exp = expr();
+        if (exp.has_value()) ret_val = exp.value();
 
-      return new ret_node(ret_val, cur.begin,
-                          ret_val ? ret_val->end : cur.end);
-    }
-    case tok_type::key_next: {
-      token cur = tok;
-      advance();
-      return new next_node(cur.begin, cur.end);
-    }
-    case tok_type::key_break: {
-      token cur = tok;
-      advance();
-      return new break_node(cur.begin, cur.end);
-    }
-    default:return expr();
+        return new ret_node(ret_val, cur.begin,
+                            ret_val ? ret_val->end : cur.end);
+      }
+      case tok_type::key_next: {
+        token cur = tok;
+        advance();
+        return new next_node(cur.begin, cur.end);
+      }
+      case tok_type::key_break: {
+        token cur = tok;
+        advance();
+        return new break_node(cur.begin, cur.end);
+      }
+      default: {
+        if (decor.empty()) {
+          return expr();
+        } else {
+          auto fn = ami_unwrap(expr());
+          return new decorated_node(decor, fn, decor.front()->begin, tok.begin);
+        }
+      }
     }
   }
 
@@ -272,7 +310,6 @@ namespace ami {
     {
       tok_type::inc,
       tok_type::dec,
-      tok_type::at,
     };
 
   std::expected<node*, std::string> parser::post_unary() {
@@ -343,77 +380,77 @@ namespace ami {
   std::expected<node*, std::string> parser::atom() {
     pos begin = tok.begin;
     switch (tok.type) {
-    case tok_type::l_paren: {
-      advance();
-      node* exp = ami_unwrap(expr());
-      ami_discard(expect(tok_type::r_paren));
-      return exp;
-    }
-    case tok_type::number: {
-      double value = std::stod(tok.lexeme);
-      advance();
-      return new number_node(value, tok.begin, tok.end);;
-    }
-    case tok_type::string: {
-      node* nod = new string_node(tok.lexeme, tok.begin, tok.end);
-      advance();
-      return nod;
-    }
-    case tok_type::key_if: {
-      std::vector<std::pair<node*, node*>> cases;
-      advance();
-      auto exp = ami_unwrap(expr());
-      auto body = ami_unwrap(block());
-      cases.emplace_back(exp, body);
-      while (tok.type == tok_type::key_elif) {
+      case tok_type::l_paren: {
         advance();
-        exp = ami_unwrap(expr());
-        body = ami_unwrap(block());
+        node* exp = ami_unwrap(expr());
+        ami_discard(expect(tok_type::r_paren));
+        return exp;
+      }
+      case tok_type::number: {
+        double value = std::stod(tok.lexeme);
+        advance();
+        return new number_node(value, tok.begin, tok.end);;
+      }
+      case tok_type::string: {
+        node* nod = new string_node(tok.lexeme, tok.begin, tok.end);
+        advance();
+        return nod;
+      }
+      case tok_type::key_if: {
+        std::vector<std::pair<node*, node*>> cases;
+        advance();
+        auto exp = ami_unwrap(expr());
+        auto body = ami_unwrap(block());
         cases.emplace_back(exp, body);
-      }
-
-      node* other = nullptr;
-      if (tok.type == tok_type::key_else) {
-        advance();
-        other = ami_unwrap(block());
-      }
-
-      return new if_node(cases, other, begin, tok.begin);
-    }
-    case tok_type::colon: {
-      return function();
-    }
-    case tok_type::id: {
-      node* nod = new field_get_node(nullptr, tok.lexeme, begin, tok.begin);
-      advance();
-      return nod;
-    }
-    case tok_type::l_object: {
-      advance();
-      std::vector<std::pair<std::string, node*>> fields;
-      while (tok.type == tok_type::id) {
-        auto id = tok.lexeme;
-        advance();
-
-        if (tok.type == tok_type::colon) {
-          node* body = ami_unwrap(function());
-          fields.emplace_back(id, body);
-        } else {
-          ami_discard(expect(tok_type::assign));
-          node* body = ami_unwrap(expr());
-          fields.emplace_back(id, body);
+        while (tok.type == tok_type::key_elif) {
+          advance();
+          exp = ami_unwrap(expr());
+          body = ami_unwrap(block());
+          cases.emplace_back(exp, body);
         }
 
-        consume(tok_type::comma);
-      }
+        node* other = nullptr;
+        if (tok.type == tok_type::key_else) {
+          advance();
+          other = ami_unwrap(block());
+        }
 
-      ami_discard(expect(tok_type::r_object));
-      return new object_node(fields, begin, tok.begin);
-    }
-    default:
-      return std::unexpected(
-        "Expected atom, got " + tok.to_string() + " in " +
-        __PRETTY_FUNCTION__);
+        return new if_node(cases, other, begin, tok.begin);
+      }
+      case tok_type::colon: {
+        return function();
+      }
+      case tok_type::id: {
+        node* nod = new field_get_node(nullptr, tok.lexeme, begin, tok.begin);
+        advance();
+        return nod;
+      }
+      case tok_type::l_object: {
+        advance();
+        std::vector<std::pair<std::string, node*>> fields;
+        while (tok.type == tok_type::id) {
+          auto id = tok.lexeme;
+          advance();
+
+          if (tok.type == tok_type::colon) {
+            node* body = ami_unwrap(function());
+            fields.emplace_back(id, body);
+          } else {
+            ami_discard(expect(tok_type::assign));
+            node* body = ami_unwrap(expr());
+            fields.emplace_back(id, body);
+          }
+
+          consume(tok_type::comma);
+        }
+
+        ami_discard(expect(tok_type::r_object));
+        return new object_node(fields, begin, tok.begin);
+      }
+      default:
+        return std::unexpected(
+          "Expected atom, got " + tok.to_string() + " in " +
+          __PRETTY_FUNCTION__);
     }
   }
 
@@ -476,10 +513,6 @@ namespace ami {
     type(type),
     begin(begin),
     end(end) {}
-
-  std::string node::pretty(int indent) const {
-    throw std::runtime_error("TODO: implement");
-  }
 
   fn_def_node::fn_def_node(std::string name,
                            std::vector<std::pair<std::string, bool>> args,
@@ -620,7 +653,7 @@ namespace ami {
   std::string object_node::pretty(int indent) const {
     std::string ind = std::string((indent + 1) * 2, ' ');
 
-    auto ss = std::stringstream() << "bin_op_node: {\n";
+    auto ss = std::stringstream() << "object_node: {\n";
     for (auto const& it: fields) {
       ss << ind << it.first << ": " << it.second->pretty(indent + 1) << '\n';
     }
@@ -775,9 +808,47 @@ namespace ami {
 
     return (
       std::stringstream()
-        << "fn_def_node: {\n"
+        << "anon_fn_def_node: {\n"
         << ind << "args: [" << arg_str << ']' << ",\n"
         << ind << "body: " << body->pretty(indent + 1) << '\n'
         << std::string(indent * 2, ' ') << '}').str();
   }
+
+  deco_node::deco_node(std::string id,
+                       std::vector<std::pair<std::string, node*>> nodes,
+                       pos begin, pos end) : id(std::move(id)),
+                                             fields(std::move(nodes)),
+                                             node(node_type::deco_node, begin,
+                                                  end) {}
+
+  std::string deco_node::pretty(int indent) const {
+    std::string ind = std::string((indent + 1) * 2, ' ');
+    std::string arg_str;
+    for (auto const& it: fields) {
+      arg_str += ind;
+      arg_str += "  ";
+      arg_str += it.first;
+      arg_str += "=";
+      arg_str += it.second->pretty(indent + 2);
+      arg_str += ",\n";
+    }
+
+    if (!arg_str.empty()) {
+      arg_str = arg_str.substr(0, arg_str.length() - 2);
+      arg_str += '\n';
+    }
+
+    return (
+      std::stringstream()
+        << "deco_node: {\n"
+        << ind << "id: " << id << '\n'
+        << ind << "fields: [" << arg_str << ']' << ",\n"
+        << std::string(indent * 2, ' ') << '}').str();
+  }
+
+  decorated_node::decorated_node(std::vector<node*> decos, node* target,
+                                 pos begin, pos end) : decos(std::move(decos)),
+                                                       target(target),
+                                                       node(node_type::decorated_node, begin,
+                                                            end) {}
 }

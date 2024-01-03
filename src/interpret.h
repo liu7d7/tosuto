@@ -27,6 +27,19 @@ namespace ami {
     interpret_result get(std::string const& name);
 
     void set(std::string const& name, value_ptr const& val);
+
+    template<typename F>
+    inline interpret_result find_first(F&& pred) {
+      for (auto const& [k, v] : vals) {
+        if (pred(k, v)) return v;
+      }
+
+      if (!par)
+        return std::unexpected
+          {"Failed to find something in the symbol table matching pred!"};
+
+      return par->find_first(pred);
+    }
   };
 
   struct interpreter {
@@ -88,5 +101,9 @@ namespace ami {
 
     std::expected<symbol_table, std::string>
     global(node* nod, symbol_table& sym);
+
+    interpret_result decorated(node* nod, symbol_table& sym);
+
+    interpret_result reject(node*, symbol_table&);
   };
 }

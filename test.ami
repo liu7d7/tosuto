@@ -1,7 +1,12 @@
 // lua-like typing system
 // currently tree walk interpreter in c++
 
-main : argv {
+@entrypoint
+ﾃｽﾄ : argv {
+  ﾄｽﾄ := "toast"
+
+  log(ﾄｽﾄ)
+
   // calls the `+` member function
   z := x + y
   // equivalent to x - y

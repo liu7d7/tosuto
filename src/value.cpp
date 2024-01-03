@@ -1,23 +1,24 @@
 #include <iostream>
+#include <utility>
 #include "value.h"
 #include "interpret.h"
 
 namespace ami {
-  value::value(value_type val) : val(std::move(val)) {}
+  value::value(value_type val, decltype(decos) decos) : val(std::move(val)), decos(std::move(decos)) {}
 
   std::string value::type_name() const {
     switch (val.index()) {
-    case double_idx:return "number";
-    case bool_idx:return "boolean";
-    case string_idx:return "string";
-    case object_idx:return "table";
-    case array_idx:return "array";
-    case function_idx:
-    case builtin_function_idx:return "function";
-    case range_idx:return "range";
-    case range_iter_idx:return "range_iter";
-    case array_iter_idx:return "array_iter";
-    case nil_idx:return "nil";
+      case double_idx:return "number";
+      case bool_idx:return "boolean";
+      case string_idx:return "string";
+      case object_idx:return "table";
+      case array_idx:return "array";
+      case function_idx:
+      case builtin_function_idx:return "function";
+      case range_idx:return "range";
+      case range_iter_idx:return "range_iter";
+      case array_iter_idx:return "array_iter";
+      case nil_idx:return "nil";
     }
 
     std::unreachable();
@@ -25,49 +26,50 @@ namespace ami {
 
   std::expected<std::string, std::string> value::display(symbol_table& sym) {
     switch (val.index()) {
-    case double_idx: {
-      if (fabs(floor(get<double>()) - get<double>()) <
-          std::numeric_limits<double>::epsilon()) {
-        return std::to_string((long long) floor(get<double>()));
+      case double_idx: {
+        if (fabs(floor(get<double>()) - get<double>()) <
+            std::numeric_limits<double>::epsilon()) {
+          return std::to_string((long long) floor(get<double>()));
+        }
+
+        return std::to_string(get<double>());
       }
+      case bool_idx:return std::to_string(get<bool>());
+      case string_idx:return get<std::string>();
+      case object_idx: {
+        auto to_str = get("to_str");
 
-      return std::to_string(get<double>());
-    }
-    case bool_idx:return std::to_string(get<bool>());
-    case string_idx:return get<std::string>();
-    case object_idx: {
-      auto to_str = get("to_str");
+        if (to_str.has_value()) {
+          auto res = ami_unwrap(
+            to_str.value()->call({shared_from_this()}, sym));
+          if (!res->is<std::string>())
+            return interpreter::fail("Expected string from to_str!");
 
-      if (to_str.has_value()) {
-        auto res = ami_unwrap(to_str.value()->call({shared_from_this()}, sym));
-        if (!res->is<std::string>())
-          return interpreter::fail("Expected string from to_str!");
+          return res->get<std::string>();
+        }
 
-        return res->get<std::string>();
+        std::string buf = "{";
+        for (auto const& [k, v]: get<object>()) {
+          buf += k;
+          buf += '=';
+          auto disp = ami_unwrap(v->display(sym));
+          buf += disp;
+          buf += ", ";
+        }
+
+        if (buf.back() != '{') buf = buf.substr(0, buf.length() - 2);
+        return buf + '}';
       }
-
-      std::string buf = "{";
-      for (auto const& [k, v]: get<object>()) {
-        buf += k;
-        buf += '=';
-        auto disp = ami_unwrap(v->display(sym));
-        buf += disp;
-        buf += ", ";
+      case function_idx:
+      case builtin_function_idx:return "function";
+      case range_idx: {
+        auto first = ami_unwrap(get<range>().first->display(sym));
+        auto second = ami_unwrap(get<range>().second->display(sym));
+        return first + ".." + second;
       }
-
-      if (buf.back() != '{') buf = buf.substr(0, buf.length() - 2);
-      return buf + '}';
-    }
-    case function_idx:
-    case builtin_function_idx:return "function";
-    case range_idx: {
-      auto first = ami_unwrap(get<range>().first->display(sym));
-      auto second = ami_unwrap(get<range>().second->display(sym));
-      return first + ".." + second;
-    }
-    case range_iter_idx:
-    case nil_idx:
-    case array_iter_idx:return type_name();
+      case range_iter_idx:
+      case nil_idx:
+      case array_iter_idx:return type_name();
     }
 
     std::unreachable();
@@ -280,7 +282,7 @@ namespace ami {
            std::pair<std::string, bool> const& arg) {
           return std::make_pair(
             arg.first,
-            arg.second ? std::make_shared<value>(it->val) : it);
+            !arg.second ? it->copy() : it);
         });
 
       symbol_table new_sym{std::unordered_map{arg_map.begin(), arg_map.end()},
@@ -303,7 +305,7 @@ namespace ami {
            std::pair<std::string, bool> const& arg) {
           return std::make_pair(
             arg.first,
-            arg.second ? std::make_shared<value>(it->val) : it);
+            !arg.second ? it->copy() : it);
         });
       symbol_table new_sym{std::unordered_map{arg_map.begin(), arg_map.end()},
                            &sym};
@@ -327,5 +329,9 @@ namespace ami {
     }
 
     return std::unexpected("Tried to get args from a non-function value!");
+  }
+
+  value_ptr value::copy() {
+    return std::make_shared<value>(val, decos);
   }
 }

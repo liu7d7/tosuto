@@ -92,22 +92,10 @@ namespace ami {
       }
     }
 
-    std::transform(it->args.begin(),
-                   it->args.end(),
-                   std::back_inserter(args),
-                   [this, &sym, &failed](node* const& a) {
-                     auto attempt = interpret(a, sym);
-                     if (!attempt.has_value()) {
-                       failed = attempt.error();
-                       return value::sym_nil;
-                     }
-
-                     return attempt.value();
-                   });
-
-    if (!failed.empty())
-      return std::unexpected{
-        failed + " in " + std::source_location::current().function_name()};
+    for (auto const& arg : it->args) {
+      auto attempt = ami_unwrap(interpret(arg, sym));
+      args.push_back(attempt);
+    }
 
     value_ptr ret = ami_unwrap(fn->call(args, sym));
     return ret;
@@ -117,23 +105,23 @@ namespace ami {
     auto it = ami_dyn_cast(un_op_node*, nod);
 
     switch (it->op) {
-    case tok_type::sub: {
-      value_ptr val = ami_unwrap(interpret(it->target, sym));
-      return val->negate();
-    }
-    case tok_type::add: {
-      value_ptr val = ami_unwrap(interpret(it->target, sym));
-      if (!val->is<value::num>()) {
-        return fail(nod);
+      case tok_type::sub: {
+        value_ptr val = ami_unwrap(interpret(it->target, sym));
+        return val->negate();
       }
+      case tok_type::add: {
+        value_ptr val = ami_unwrap(interpret(it->target, sym));
+        if (!val->is<value::num>()) {
+          return fail(nod);
+        }
 
-      return std::make_shared<value>(val->get<value::num>());
-    }
-    case tok_type::mul: {
-      value_ptr val = ami_unwrap(interpret(it->target, sym));
-      return val->deref(sym);
-    }
-    default:return fail(nod);
+        return std::make_shared<value>(val->get<value::num>());
+      }
+      case tok_type::mul: {
+        value_ptr val = ami_unwrap(interpret(it->target, sym));
+        return val->deref(sym);
+      }
+      default:return fail(nod);
     }
   }
 
@@ -175,49 +163,49 @@ namespace ami {
       }
 
     switch (it->op) {
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(add)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(sub)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mul)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(div)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mod)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(eq)
-    AMI_BIN_OP_ONE_CASE_NON_ASSIGN(neq)
-    AMI_BIN_OP_ONE_CASE_ASSIGN(add)
-    AMI_BIN_OP_ONE_CASE_ASSIGN(sub)
-    AMI_BIN_OP_ONE_CASE_ASSIGN(mul)
-    AMI_BIN_OP_ONE_CASE_ASSIGN(div)
-    AMI_BIN_OP_ONE_CASE_ASSIGN(mod)
-    case tok_type::assign: {
-      value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
-      return assign(it->lhs, rhs, sym);
-    }
-    case tok_type::sym_or: {
-      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-      if (lhs->is_truthy()) return lhs;
-      return interpret(it->rhs, sym);
-    }
-    case tok_type::sym_and: {
-      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-      if (!lhs->is_truthy()) return lhs;
-      return interpret(it->rhs, sym);
-    }
-    case tok_type::key_with: {
-      value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
-      if (!lhs->is<value::object>()) return fail(nod);
-
-      value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
-      if (!lhs->is<value::object>()) return fail(nod);
-
-      auto lhs_fields = value::object{lhs->get<value::object>()};
-      auto& rhs_fields = rhs->get<value::object>();
-
-      for (auto const& [k, v]: rhs_fields) {
-        lhs_fields[k] = v;
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(add)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(sub)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mul)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(div)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(mod)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(eq)
+      AMI_BIN_OP_ONE_CASE_NON_ASSIGN(neq)
+      AMI_BIN_OP_ONE_CASE_ASSIGN(add)
+      AMI_BIN_OP_ONE_CASE_ASSIGN(sub)
+      AMI_BIN_OP_ONE_CASE_ASSIGN(mul)
+      AMI_BIN_OP_ONE_CASE_ASSIGN(div)
+      AMI_BIN_OP_ONE_CASE_ASSIGN(mod)
+      case tok_type::assign: {
+        value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
+        return assign(it->lhs, rhs, sym);
       }
+      case tok_type::sym_or: {
+        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+        if (lhs->is_truthy()) return lhs;
+        return interpret(it->rhs, sym);
+      }
+      case tok_type::sym_and: {
+        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+        if (!lhs->is_truthy()) return lhs;
+        return interpret(it->rhs, sym);
+      }
+      case tok_type::key_with: {
+        value_ptr lhs = ami_unwrap(interpret(it->lhs, sym));
+        if (!lhs->is<value::object>()) return fail(nod);
 
-      return std::make_shared<value>(lhs_fields);
-    }
-    default:return fail(nod);
+        value_ptr rhs = ami_unwrap(interpret(it->rhs, sym));
+        if (!lhs->is<value::object>()) return fail(nod);
+
+        auto lhs_fields = value::object{lhs->get<value::object>()};
+        auto& rhs_fields = rhs->get<value::object>();
+
+        for (auto const& [k, v]: rhs_fields) {
+          lhs_fields[k] = v;
+        }
+
+        return std::make_shared<value>(lhs_fields);
+      }
+      default:return fail(nod);
     }
   }
 
@@ -238,23 +226,11 @@ namespace ami {
 
     std::string failed;
     std::vector<std::pair<std::string, value_ptr>> fields;
-    std::transform(
-      it->fields.begin(),
-      it->fields.end(),
-      std::back_inserter(fields),
-      [this, &sym, &failed](std::pair<std::string, node*> const& field) {
-        auto attempt = interpret(field.second, sym);
-        if (!attempt.has_value()) {
-          failed = attempt.error();
-          return std::pair{""s, value::sym_nil};
-        }
+    for (auto const& [k, v] : it->fields) {
+      auto attempt = ami_unwrap(interpret(v, sym));
+      fields.emplace_back(k, attempt);
+    }
 
-        return std::pair{field.first, attempt.value()};
-      });
-
-    if (!failed.empty())
-      return std::unexpected{
-        failed + " at " + std::source_location::current().function_name()};
     return std::make_shared<value>(
       std::unordered_map{fields.begin(), fields.end()});
   }
@@ -302,6 +278,10 @@ namespace ami {
 
   interpret_result interpreter::do_nothing(node*, symbol_table&) {
     return value::sym_nil;
+  }
+
+  interpret_result interpreter::reject(node* nod, symbol_table&) {
+    return fail(nod);
   }
 
   interpret_result interpreter::var_def(node* nod, symbol_table& sym) {
@@ -356,28 +336,56 @@ namespace ami {
     interpret_result(interpreter::*)(node*,
                                      symbol_table&)> interpreter::interpreters
     {
-      {node_type::fn_def,      &interpreter::fn_def},
-      {node_type::block,       &interpreter::block},
-      {node_type::call,        &interpreter::call},
-      {node_type::un_op,       &interpreter::un_op},
-      {node_type::bin_op,      &interpreter::bin_op},
-      {node_type::number,      &interpreter::number},
-      {node_type::string,      &interpreter::string},
-      {node_type::object,      &interpreter::object},
-      {node_type::field_get,   &interpreter::field_get},
-      {node_type::if_stmt,     &interpreter::if_stmt},
-      {node_type::ret,         &interpreter::ret},
-      {node_type::next,        &interpreter::do_nothing},
-      {node_type::brk,         &interpreter::do_nothing},
-      {node_type::var_def,     &interpreter::var_def},
-      {node_type::range,       &interpreter::range},
-      {node_type::for_loop,    &interpreter::for_loop},
-      {node_type::anon_fn_def, &interpreter::anon_fn_def},
+      {node_type::fn_def,         &interpreter::fn_def},
+      {node_type::block,          &interpreter::block},
+      {node_type::call,           &interpreter::call},
+      {node_type::un_op,          &interpreter::un_op},
+      {node_type::bin_op,         &interpreter::bin_op},
+      {node_type::number,         &interpreter::number},
+      {node_type::string,         &interpreter::string},
+      {node_type::object,         &interpreter::object},
+      {node_type::field_get,      &interpreter::field_get},
+      {node_type::if_stmt,        &interpreter::if_stmt},
+      {node_type::ret,            &interpreter::ret},
+      {node_type::next,           &interpreter::do_nothing},
+      {node_type::brk,            &interpreter::do_nothing},
+      {node_type::var_def,        &interpreter::var_def},
+      {node_type::range,          &interpreter::range},
+      {node_type::for_loop,       &interpreter::for_loop},
+      {node_type::anon_fn_def,    &interpreter::anon_fn_def},
+      {node_type::decorated_node, &interpreter::decorated},
+      {node_type::deco_node,      &interpreter::reject},
     };
 
   interpret_result interpreter::anon_fn_def(node* nod, symbol_table& sym) {
     auto it = ami_dyn_cast(fn_def_node*, nod);
     return std::make_shared<value>(it);
+  }
+
+  interpret_result interpreter::decorated(node* nod, symbol_table& sym) {
+    auto it = ami_dyn_cast(decorated_node*, nod);
+    std::vector<std::pair<std::string, value_ptr>> decos;
+    for (auto deco_erased: it->decos) {
+      auto deco = ami_dyn_cast(deco_node*, deco_erased);
+      auto obj = std::make_unique<object_node>(deco->fields, pos{}, pos{});
+      auto val = ami_unwrap(interpret(obj.get(), sym));
+      decos.emplace_back(deco->id, val);
+    }
+
+    auto target = ami_unwrap(interpret(it->target, sym));
+
+    switch (it->target->type) {
+      case node_type::fn_def: {
+        auto fn_def = ami_dyn_cast(fn_def_node*, it->target);
+        auto fn = ami_unwrap(sym.get(fn_def->name));
+        fn->decos = std::unordered_map{decos.begin(), decos.end()};
+        return value::sym_nil;
+      }
+      default: {
+        target->decos = std::unordered_map{decos.begin(), decos.end()};
+        return target;
+      }
+    }
   }
 
   interpret_result interpreter::block(node* nod, symbol_table& sym) {
@@ -388,6 +396,6 @@ namespace ami {
   std::expected<symbol_table, std::string>
   interpreter::global(node* nod, symbol_table& sym) {
     auto thing = ami_unwrap(block_with_symbols(nod, sym));
-    return thing.second;
+    return *thing.second.par;
   }
 }

@@ -58,7 +58,11 @@ namespace ami {
 
     value_type val;
 
-    explicit value(value_type val);
+    std::unordered_map<std::string, value_ptr> decos;
+
+    explicit value(value_type val, decltype(decos) decos = {});
+
+    value_ptr copy();
 
     std::string type_name() const;
 
@@ -75,6 +79,14 @@ namespace ami {
     interpret_result eq(value_ptr& other, symbol_table& sym);
 
     interpret_result neq(value_ptr& other, symbol_table& sym);
+
+    inline interpret_result has_deco(std::string const& name) {
+      return std::make_shared<value>(decos.contains(name));
+    }
+
+    inline interpret_result get_deco(std::string const& name) {
+      return decos.contains(name) ? decos[name] : value::sym_nil;
+    }
 
     interpret_result negate(), invert();
 

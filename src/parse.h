@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include "ami.h"
 #include "lex.h"
 
@@ -23,6 +24,8 @@ namespace ami {
     range,
     for_loop,
     anon_fn_def,
+    deco_node,
+    decorated_node
   };
 
   static std::string to_string(node_type type) {
@@ -45,6 +48,8 @@ namespace ami {
         "range",
         "for_loop",
         "anon_fn_def",
+        "deco_node",
+        "decorated_node",
       };
 
     return node_type_to_string[std::to_underlying(type)];
@@ -56,7 +61,7 @@ namespace ami {
 
     node(node_type type, pos begin, pos end);
 
-    [[nodiscard]] virtual std::string pretty(int indent) const;
+    [[nodiscard]] virtual std::string pretty(int indent) const = 0;
   };
 
   struct fn_def_node : public node {
@@ -215,6 +220,47 @@ namespace ami {
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
+  struct deco_node : public node {
+    std::string id;
+    std::vector<std::pair<std::string, node*>> fields;
+
+    deco_node(std::string id, std::vector<std::pair<std::string, node*>> nodes,
+              pos begin, pos end);
+
+    [[nodiscard]] std::string pretty(int indent) const override;
+  };
+
+  struct decorated_node : public node {
+    std::vector<node*> decos;
+    node* target;
+
+    decorated_node(std::vector<node*> decos, node* target,
+                   pos begin, pos end);
+
+    [[nodiscard]] std::string pretty(int indent) const override {
+      std::string ind = std::string((indent + 1) * 2, ' ');
+      std::string arg_str;
+      for (auto const& it: decos) {
+        arg_str += ind;
+        arg_str += "  ";
+        arg_str += it->pretty(indent + 2);
+        arg_str += ",\n";
+      }
+
+      if (!arg_str.empty()) {
+        arg_str = arg_str.substr(0, arg_str.length() - 2);
+        arg_str += '\n';
+      }
+
+      return (
+        std::stringstream()
+          << "decorated_node: {\n"
+          << ind << "target: " << target->pretty(indent + 1) << '\n'
+          << ind << "decos: [" << arg_str << ']' << ",\n"
+          << std::string(indent * 2, ' ') << '}').str();
+    }
+  };
+
   struct parser {
     std::vector<token> toks;
     size_t idx;
@@ -277,5 +323,7 @@ namespace ami {
     std::expected<node*, std::string> for_loop();
 
     std::expected<node*, std::string> with();
+
+    std::expected<std::vector<node*>, std::string> decos();
   };
 }

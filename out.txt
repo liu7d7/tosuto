@@ -1,119 +1,143 @@
 block: [
-  fn_def_node: {
-    name: main,
-    args: [argv],
-    body: block: [
-      var_def_node: {
-        name: z,
-        value: bin_op_node: {
-          op: add,
-          lhs: field_get_node: {
-            target: nil,
-            field: x,
-          }
-          rhs: field_get_node: {
-            target: nil,
-            field: y,
-          }
+  decorated_node: {
+    target: fn_def_node: {
+      name: ﾃｽﾄ,
+      args: [argv],
+      body: block: [
+        var_def_node: {
+          name: ﾄｽﾄ,
+          value: string_node: "toast",
         },
-      },
-      var_def_node: {
-        name: w,
-        value: call_node: {
+        call_node: {
           callee: field_get_node: {
-            target: field_get_node: {
-              target: nil,
-              field: x,
-            },
-            field: -,
+            target: nil,
+            field: log,
           },
-          is_member: 1,
+          is_member: 0,
           args: [
             field_get_node: {
               target: nil,
-              field: y,
+              field: ﾄｽﾄ,
             }
           ],
         },
-      },
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: log,
+        var_def_node: {
+          name: z,
+          value: bin_op_node: {
+            op: add,
+            lhs: field_get_node: {
+              target: nil,
+              field: x,
+            }
+            rhs: field_get_node: {
+              target: nil,
+              field: y,
+            }
+          },
         },
-        is_member: 0,
-        args: [
-          field_get_node: {
-            target: nil,
-            field: z,
-          }
-        ],
-      },
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: log,
-        },
-        is_member: 0,
-        args: [
-          field_get_node: {
-            target: nil,
-            field: w,
-          }
-        ],
-      },
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: log,
-        },
-        is_member: 0,
-        args: [
-          call_node: {
+        var_def_node: {
+          name: w,
+          value: call_node: {
             callee: field_get_node: {
               target: field_get_node: {
                 target: nil,
-                field: z,
+                field: x,
               },
-              field: dot,
+              field: -,
             },
             is_member: 1,
             args: [
               field_get_node: {
                 target: nil,
-                field: w,
+                field: y,
               }
             ],
-          }
-        ],
-      },
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: log,
+          },
         },
-        is_member: 0,
-        args: [
-          call_node: {
-            callee: field_get_node: {
-              target: field_get_node: {
-                target: nil,
-                field: z,
+        call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: log,
+          },
+          is_member: 0,
+          args: [
+            field_get_node: {
+              target: nil,
+              field: z,
+            }
+          ],
+        },
+        call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: log,
+          },
+          is_member: 0,
+          args: [
+            field_get_node: {
+              target: nil,
+              field: w,
+            }
+          ],
+        },
+        call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: log,
+          },
+          is_member: 0,
+          args: [
+            call_node: {
+              callee: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: z,
+                },
+                field: dot,
               },
-              field: perp,
-            },
-            is_member: 1,
-            args: [
+              is_member: 1,
+              args: [
+                field_get_node: {
+                  target: nil,
+                  field: w,
+                }
+              ],
+            }
+          ],
+        },
+        call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: log,
+          },
+          is_member: 0,
+          args: [
+            call_node: {
+              callee: field_get_node: {
+                target: field_get_node: {
+                  target: nil,
+                  field: z,
+                },
+                field: perp,
+              },
+              is_member: 1,
+              args: [
 
-            ],
-          }
-        ],
-      },
-    ]
+              ],
+            }
+          ],
+        },
+      ]
+    }
+    decos: [      deco_node: {
+        id: entrypoint
+        fields: [],
+      }
+],
   },
   var_def_node: {
     name: vec,
-    value: bin_op_node: {
+    value: object_node: {
       +: fn_def_node: {
         name: ,
         args: [lhs*, rhs*],
@@ -348,7 +372,7 @@ block: [
             target: nil,
             field: my,
           }
-          rhs: bin_op_node: {
+          rhs: object_node: {
             x: field_get_node: {
               target: nil,
               field: x,

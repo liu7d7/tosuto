@@ -131,9 +131,9 @@ namespace ami {
   };
 
   struct lexer {
-    std::string text;
+    std::u16string text;
     pos cpos = {.idx = 0, .col = 1, .row = 1};
-    char ch;
+    char16_t ch;
 
     explicit lexer(std::string const& path);
 
@@ -141,11 +141,8 @@ namespace ami {
 
     std::vector<token> lex();
 
-    static bool is_id_start(char ch);
+    static bool is_id_start(char16_t ch);
 
-    static bool is_id_continue(char ch);
-
-    static std::unordered_map<std::string, tok_type> keywords;
-    static std::unordered_map<char, tok_type> symbols;
+    static bool is_id_continue(char16_t ch);
   };
 }

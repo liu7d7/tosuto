@@ -1,0 +1,10 @@
+// diacritics test
+
+@entrypoint
+bonjour : argv {
+  espérer("je peux avoir une vie!")
+}
+
+espérer : quoi {
+  log("j'espère que " + quoi)
+}

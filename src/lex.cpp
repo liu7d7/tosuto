@@ -256,7 +256,12 @@ namespace ami {
   }
 
   bool lexer::is_id_start(char16_t ch) {
-    return isalpha(ch) || ch == '_' || ch == '$' || (ch >= 0xFF61 && ch <= 0xFF9F);
+    return isalpha(ch)
+      || ch == '_'
+      || ch == '$'
+      || (ch >= 0xff61 && ch <= 0xff9F) // half-width katakana
+      || (ch >= 0x0300 && ch <= 0x036f) // diacritics (combining characters)
+      || (ch >= 128 && ch <= 255); // diacritics (extended ascii)
   }
 
   bool lexer::is_id_continue(char16_t ch) {

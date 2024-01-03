@@ -1,11 +1,12 @@
 #include <iostream>
+#include <filesystem>
 #include "src/ami.h"
 #include "src/lex.h"
 #include "src/parse.h"
 #include "src/interpret.h"
 
-int main() {
-  ami::lexer lexer{"test.ami"};
+void test_file(std::string const& filename) {
+  ami::lexer lexer{filename};
   auto toks = lexer.lex();
 
   ami::parser parser{toks};
@@ -43,13 +44,13 @@ int main() {
             {"obj", true}, {"name", true}}))},
 
         {"get_deco", std::make_shared<ami::value>(
-            std::make_pair([](ami::symbol_table& sym) -> ami::interpret_result {
-              auto obj = ami_unwrap(sym.get("obj"));
-              auto name = ami_unwrap(sym.get("name"));
-              if (!name->is<std::string>()) return ami::interpreter::fail("Expected string, got " + name->type_name());
-              return obj->get_deco(name->get<std::string>());
-            }, std::vector<std::pair<std::string, bool>>{
-              {"obj", true}, {"name", true}}))},
+          std::make_pair([](ami::symbol_table& sym) -> ami::interpret_result {
+            auto obj = ami_unwrap(sym.get("obj"));
+            auto name = ami_unwrap(sym.get("name"));
+            if (!name->is<std::string>()) return ami::interpreter::fail("Expected string, got " + name->type_name());
+            return obj->get_deco(name->get<std::string>());
+          }, std::vector<std::pair<std::string, bool>>{
+            {"obj", true}, {"name", true}}))},
 
         {"false", ami::value::sym_false},
         {"true", ami::value::sym_true},
@@ -68,7 +69,12 @@ int main() {
   if (!main_try.has_value()) throw std::runtime_error(main_try.error());
 
   auto call_try = main_try.value()->call(
-    {std::make_shared<ami::value>("test.ami")}, thing.value());
+    {std::make_shared<ami::value>(filename)}, thing.value());
   if (!call_try.has_value()) throw std::runtime_error(call_try.error());
+}
+
+int main() {
+  test_file("tests/diacritics.ami");
+  test_file("tests/half-width-katakana.ami");
   return 0;
 }

@@ -1,0 +1,12 @@
+// half-width katakana test
+// example taken from https://learn.microsoft.com/en-us/cpp/cpp/identifiers-cpp?view=msvc-170
+
+@entrypoint
+main : argv {
+  log(ﾃｽﾄ.ﾄｽﾄ.())
+}
+
+ﾃｽﾄ := [|
+  ﾍﾟﾝ = "bread"
+  ﾄｽﾄ : ｼﾞﾌﾞﾝ* -> ｼﾞﾌﾞﾝ.ﾍﾟﾝ
+|]

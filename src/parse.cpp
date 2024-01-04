@@ -352,7 +352,6 @@ namespace ami {
     while (tok.type == tok_type::dot) {
       advance();
       if (tok.type == tok_type::l_paren) {
-        // this is a member function call
         advance();
         std::vector<node*> args;
         while (tok.type != tok_type::r_paren) {
@@ -851,4 +850,27 @@ namespace ami {
                                                        target(target),
                                                        node(node_type::decorated_node, begin,
                                                             end) {}
+
+  std::string decorated_node::pretty(int indent) const {
+    std::string ind = std::string((indent + 1) * 2, ' ');
+    std::string arg_str;
+    for (auto const& it: decos) {
+      arg_str += ind;
+      arg_str += "  ";
+      arg_str += it->pretty(indent + 2);
+      arg_str += ",\n";
+    }
+
+    if (!arg_str.empty()) {
+      arg_str = arg_str.substr(0, arg_str.length() - 2);
+      arg_str += '\n';
+    }
+
+    return (
+      std::stringstream()
+        << "decorated_node: {\n"
+        << ind << "target: " << target->pretty(indent + 1) << '\n'
+        << ind << "decos: [" << arg_str << ']' << ",\n"
+        << std::string(indent * 2, ' ') << '}').str();
+  }
 }

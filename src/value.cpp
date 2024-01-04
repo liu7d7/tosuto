@@ -176,6 +176,7 @@ namespace ami {
 
   bool value::is_truthy() {
     if (is<bool>()) return get<bool>();
+    if (is<num>()) return fabs(get<num>()) < std::numeric_limits<num>::epsilon();
     if (is<nil>()) return false;
     return true;
   }
@@ -264,7 +265,8 @@ namespace ami {
     value::sym_nil = std::make_shared<value>(nil{}),
     value::sym_false = std::make_shared<value>(false),
     value::sym_true = std::make_shared<value>(true),
-    value::sym_one = std::make_shared<value>(1.0);
+    value::sym_one = std::make_shared<value>(1.0),
+    value::sym_zero = std::make_shared<value>(0.0);
 
   interpret_result
   value::call(std::vector<value_ptr> const& args, symbol_table& sym) {

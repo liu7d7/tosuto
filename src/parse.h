@@ -237,28 +237,7 @@ namespace ami {
     decorated_node(std::vector<node*> decos, node* target,
                    pos begin, pos end);
 
-    [[nodiscard]] std::string pretty(int indent) const override {
-      std::string ind = std::string((indent + 1) * 2, ' ');
-      std::string arg_str;
-      for (auto const& it: decos) {
-        arg_str += ind;
-        arg_str += "  ";
-        arg_str += it->pretty(indent + 2);
-        arg_str += ",\n";
-      }
-
-      if (!arg_str.empty()) {
-        arg_str = arg_str.substr(0, arg_str.length() - 2);
-        arg_str += '\n';
-      }
-
-      return (
-        std::stringstream()
-          << "decorated_node: {\n"
-          << ind << "target: " << target->pretty(indent + 1) << '\n'
-          << ind << "decos: [" << arg_str << ']' << ",\n"
-          << std::string(indent * 2, ' ') << '}').str();
-    }
+    [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct parser {

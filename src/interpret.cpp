@@ -57,7 +57,6 @@ namespace ami {
     value_ptr val;
     for (auto const& stmt: it->exprs) {
       val = ami_unwrap(interpret(stmt, sym));
-      // TODO: figure out what to do with has_ret & has_next
       if (stmt->type == node_type::ret) {
         return std::make_pair(val, new_sym);
       } else if (stmt->type == node_type::next) {
@@ -79,13 +78,13 @@ namespace ami {
     std::string failed;
     std::vector<value_ptr> args;
     if (it->is_member) {
-      if (it->callee->type == node_type::field_get) {
+      if (fn->is<value::object>()) {
+        args.push_back(fn);
+      } else if (it->callee->type == node_type::field_get) {
         auto fget = ami_dyn_cast(field_get_node*, it->callee);
         if (!fget->target) return fail(nod);
         value_ptr first = ami_unwrap(interpret(fget->target, sym));
         args.push_back(first);
-      } else if (fn->is<value::object>()) {
-        args.push_back(fn);
       } else {
         return fail(
           "Don't know how to handle member on this one: " + nod->pretty(0));
@@ -121,6 +120,16 @@ namespace ami {
         value_ptr val = ami_unwrap(interpret(it->target, sym));
         return val->deref(sym);
       }
+      case tok_type::inc: {
+        value_ptr val = ami_unwrap(interpret(it->target, sym));
+        value_ptr res = ami_unwrap(val->add(value::sym_one, sym));
+        return assign(it->target, res, sym);
+      }
+      case tok_type::dec: {
+        value_ptr val = ami_unwrap(interpret(it->target, sym));
+        value_ptr res = ami_unwrap(val->sub(value::sym_one, sym));
+        return assign(it->target, res, sym);
+      }
       default:return fail(nod);
     }
   }
@@ -134,10 +143,6 @@ namespace ami {
       return obj->set(it->field, val);
     } else {
       value_ptr existing = ami_unwrap(sym.get(it->field));
-      // TODO: is this the right semantic?
-      // if you assign to a reference value, that value will change, but
-      // if you assign to the thing that you just assigned then it won't change.
-      // that sounds right?
       *existing = *val;
       return val;
     }
@@ -357,7 +362,7 @@ namespace ami {
       {node_type::deco_node,      &interpreter::reject},
     };
 
-  interpret_result interpreter::anon_fn_def(node* nod, symbol_table& sym) {
+  interpret_result interpreter::anon_fn_def(node* nod, symbol_table&) {
     auto it = ami_dyn_cast(fn_def_node*, nod);
     return std::make_shared<value>(it);
   }

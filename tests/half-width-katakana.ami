@@ -2,11 +2,14 @@
 // example taken from https://learn.microsoft.com/en-us/cpp/cpp/identifiers-cpp?view=msvc-170
 
 @entrypoint
-main : argv {
-  log(ﾃｽﾄ.ﾄｽﾄ.())
+ﾒｲﾝ : argv {
+  ﾊﾟﾝ := "bread"
+
+  ﾄｰｽﾄ.(ﾊﾟﾝ)
+  log(ﾊﾟﾝ)
 }
 
-ﾃｽﾄ := [|
-  ﾍﾟﾝ = "bread"
-  ﾄｽﾄ : ｼﾞﾌﾞﾝ* -> ｼﾞﾌﾞﾝ.ﾍﾟﾝ
+ﾄｰｽﾄ := [|
+  ﾊﾟﾝ = "toast"
+  `()` : ｼﾞﾌﾞﾝ* ﾊﾟﾝ* -> ﾊﾟﾝ = ｼﾞﾌﾞﾝ.ﾊﾟﾝ
 |]

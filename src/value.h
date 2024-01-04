@@ -80,7 +80,7 @@ namespace ami {
 
     interpret_result neq(value_ptr& other, symbol_table& sym);
 
-    inline interpret_result has_deco(std::string const& name) {
+    inline interpret_result has_deco(std::string const& name) const {
       return std::make_shared<value>(decos.contains(name));
     }
 
@@ -123,7 +123,7 @@ namespace ami {
     std::expected<std::vector<std::pair<std::string, bool>>, std::string>
     args();
 
-    static value_ptr sym_nil, sym_false, sym_true, sym_one;
+    static value_ptr sym_nil, sym_false, sym_true, sym_one, sym_zero;
 
     interpret_result deref(symbol_table& sym);
 

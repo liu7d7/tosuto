@@ -1,9 +1,26 @@
 block: [
   decorated_node: {
     target: fn_def_node: {
-      name: main,
+      name: ﾒｲﾝ,
       args: [argv],
       body: block: [
+        var_def_node: {
+          name: ﾊﾟﾝ,
+          value: string_node: "bread",
+        },
+        call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: ﾄｰｽﾄ,
+          },
+          is_member: 1,
+          args: [
+            field_get_node: {
+              target: nil,
+              field: ﾊﾟﾝ,
+            }
+          ],
+        },
         call_node: {
           callee: field_get_node: {
             target: nil,
@@ -11,18 +28,9 @@ block: [
           },
           is_member: 0,
           args: [
-            call_node: {
-              callee: field_get_node: {
-                target: field_get_node: {
-                  target: nil,
-                  field: ﾃｽﾄ,
-                },
-                field: ﾄｽﾄ,
-              },
-              is_member: 1,
-              args: [
-
-              ],
+            field_get_node: {
+              target: nil,
+              field: ﾊﾟﾝ,
             }
           ],
         },
@@ -35,18 +43,25 @@ block: [
 ],
   },
   var_def_node: {
-    name: ﾃｽﾄ,
+    name: ﾄｰｽﾄ,
     value: object_node: {
-      ﾍﾟﾝ: string_node: "bread"
-      ﾄｽﾄ: fn_def_node: {
+      ﾊﾟﾝ: string_node: "toast"
+      (): fn_def_node: {
         name: ,
-        args: [ｼﾞﾌﾞﾝ*],
-        body: field_get_node: {
-          target: field_get_node: {
+        args: [ｼﾞﾌﾞﾝ*, ﾊﾟﾝ*],
+        body: bin_op_node: {
+          op: assign,
+          lhs: field_get_node: {
             target: nil,
-            field: ｼﾞﾌﾞﾝ,
-          },
-          field: ﾍﾟﾝ,
+            field: ﾊﾟﾝ,
+          }
+          rhs: field_get_node: {
+            target: field_get_node: {
+              target: nil,
+              field: ｼﾞﾌﾞﾝ,
+            },
+            field: ﾊﾟﾝ,
+          }
         }
       }
     },

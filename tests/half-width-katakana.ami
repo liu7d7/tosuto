@@ -7,6 +7,15 @@
 
   ﾄｰｽﾄ.(ﾊﾟﾝ)
   log(ﾊﾟﾝ) // output: toast
+
+  start := time()
+  j := 0
+  for i : 0..10000000 {
+    j++
+  }
+
+  end := time()
+  log(end - start)
 }
 
 ﾄｰｽﾄ := [|

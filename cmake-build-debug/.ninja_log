@@ -49,3 +49,11 @@
 4	5890	7261078397024902	CMakeFiles/ami.dir/main.cpp.obj	f4fac1eb16b00c0b
 12	6144	7261078399524350	CMakeFiles/ami.dir/src/treewalk/interpret.cpp.obj	dbb7cf798cbc5b55
 6144	11315	7261078451240306	ami.exe	6f5a554653d3f193
+18	1863	7261170603132538	CMakeFiles/ami.dir/src/ami.cpp.obj	f7e24904e9232ead
+101	2369	7261170608189141	CMakeFiles/ami.dir/src/vm/vm.cpp.obj	2389c87902f7e8bf
+8	2907	7261170613481244	CMakeFiles/ami.dir/src/treewalk/scan.cpp.obj	c7467aeb9a2048dc
+1	4481	7261170629206891	CMakeFiles/ami.dir/main.cpp.obj	f4fac1eb16b00c0b
+42	4498	7261170629332384	CMakeFiles/ami.dir/src/treewalk/value.cpp.obj	1316300f8a7d432d
+79	4520	7261170629573179	CMakeFiles/ami.dir/src/treewalk/parse.cpp.obj	868e1025b62433b1
+25	4585	7261170630190826	CMakeFiles/ami.dir/src/treewalk/interpret.cpp.obj	dbb7cf798cbc5b55
+4586	9269	7261170677087313	ami.exe	6f5a554653d3f193

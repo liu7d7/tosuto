@@ -42,7 +42,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::fn_def(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(fn_def_node*, nod);
+    auto it = static_cast<fn_def_node*>(nod);
 
     sym.set(it->name, std::make_shared<value>(it));
     return value::sym_nil;
@@ -50,7 +50,7 @@ namespace ami::tree {
 
   std::expected<std::pair<value_ptr, symbol_table>, std::string>
   interpreter::block_with_symbols(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(block_node*, nod);
+    auto it = static_cast<block_node*>(nod);
 
     symbol_table new_sym{{}, &sym};
 
@@ -71,7 +71,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::call(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(call_node*, nod);
+    auto it = static_cast<call_node*>(nod);
 
     value_ptr fn = ami_unwrap(interpret(it->callee.get(), sym));
 
@@ -101,7 +101,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::un_op(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(un_op_node*, nod);
+    auto it = static_cast<un_op_node*>(nod);
 
     switch (it->op) {
       case tok_type::sub: {
@@ -136,7 +136,7 @@ namespace ami::tree {
 
   interpret_result
   interpreter::assign(node* nod, value_ptr const& val, symbol_table& sym) {
-    auto it = ami_dyn_cast(field_get_node*, nod);
+    auto it = static_cast<field_get_node*>(nod);
 
     if (it->target) {
       value_ptr obj = ami_unwrap(interpret(it->target.get(), sym));
@@ -149,7 +149,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::bin_op(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(bin_op_node*, nod);
+    auto it = static_cast<bin_op_node*>(nod);
 
 #define AMI_BIN_OP_ONE_CASE_NON_ASSIGN(op) \
       case tok_type::op:\
@@ -215,19 +215,19 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::number(node* nod, symbol_table&) {
-    auto it = ami_dyn_cast(number_node*, nod);
+    auto it = static_cast<number_node*>(nod);
 
     return std::make_shared<value>(it->value);
   }
 
   interpret_result interpreter::string(node* nod, symbol_table&) {
-    auto it = ami_dyn_cast(string_node*, nod);
+    auto it = static_cast<string_node*>(nod);
 
     return std::make_shared<value>(it->value);
   }
 
   interpret_result interpreter::object(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(object_node*, nod);
+    auto it = static_cast<object_node*>(nod);
 
     std::string failed;
     std::vector<std::pair<std::string, value_ptr>> fields;
@@ -241,7 +241,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::field_get(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(field_get_node*, nod);
+    auto it = static_cast<field_get_node*>(nod);
 
     if (it->target) {
       auto lhs = ami_unwrap(interpret(it->target.get(), sym));
@@ -252,7 +252,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::if_stmt(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(if_node*, nod);
+    auto it = static_cast<if_node*>(nod);
 
     for (auto const& branch: it->cases) {
       value_ptr cond = ami_unwrap(interpret(branch.first.get(), sym));
@@ -271,7 +271,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::ret(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(ret_node*, nod);
+    auto it = static_cast<ret_node*>(nod);
 
     if (it->ret_val) {
       auto ret_val = ami_unwrap(interpret(it->ret_val.get(), sym));
@@ -290,7 +290,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::var_def(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(var_def_node*, nod);
+    auto it = static_cast<var_def_node*>(nod);
 
     auto value = ami_unwrap(interpret(it->value.get(), sym));
     sym.set(it->name, value);
@@ -298,7 +298,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::range(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(range_node*, nod);
+    auto it = static_cast<range_node*>(nod);
 
     auto start = ami_unwrap(interpret(it->start.get(), sym));
     auto finish = ami_unwrap(interpret(it->finish.get(), sym));
@@ -307,7 +307,7 @@ namespace ami::tree {
   }
 
   interpret_result interpreter::for_loop(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(for_node*, nod);
+    auto it = static_cast<for_node*>(nod);
 
     auto iterable = ami_unwrap(interpret(it->iterable.get(), sym));
     auto begin = ami_unwrap(iterable->iterator(sym));
@@ -359,12 +359,12 @@ namespace ami::tree {
   };
 
   interpret_result interpreter::anon_fn_def(node* nod, symbol_table&) {
-    auto it = ami_dyn_cast(fn_def_node*, nod);
+    auto it = static_cast<fn_def_node*>(nod);
     return std::make_shared<value>(it);
   }
 
   interpret_result interpreter::decorated(node* nod, symbol_table& sym) {
-    auto it = ami_dyn_cast(decorated_node*, nod);
+    auto it = static_cast<decorated_node*>(nod);
     std::vector<std::pair<std::string, value_ptr>> decos;
     for (auto const& deco_erased: it->decos) {
       auto deco = ami_dyn_cast(deco_node*, deco_erased.get());

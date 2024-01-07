@@ -6,13 +6,13 @@ set(CMAKE_CXX_STANDARD 23)
 add_executable(ami main.cpp
         src/ami.h
         src/ami.cpp
-        src/treewalk/lex.h
-        src/treewalk/scan.cpp
-        src/treewalk/parse.h
-        src/treewalk/parse.h
-        src/treewalk/parse.h
-        src/treewalk/parse.cpp
-        src/treewalk/parse.cpp
+        src/lex.h
+        src/lex.cpp
+        src/parse.h
+        src/parse.h
+        src/parse.h
+        src/parse.cpp
+        src/parse.cpp
         src/treewalk/interpret.h
         src/treewalk/interpret.h
         src/treewalk/interpret.cpp
@@ -21,6 +21,7 @@ add_executable(ami main.cpp
         src/vm/vm.h
         src/vm/vm.cpp
         src/vm/compile.h
-        src/vm/scan.h
-        src/vm/scan.h
+        src/vm/compile.cpp
+        src/vm/value.h
+        src/vm/value.cpp
 )

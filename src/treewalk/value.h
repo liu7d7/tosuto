@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 #include <variant>
-#include "parse.h"
+#include "../parse.h"
 
 namespace ami::tree {
   struct value;

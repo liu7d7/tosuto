@@ -1,5 +1,5 @@
 block: [
-  decorated_node: {
+  decorated: {
     target: fn_def_node: {
       name: ﾒｲﾝ,
       args: [argv],
@@ -26,7 +26,7 @@ block: [
             target: nil,
             field: log,
           },
-          is_member: 0,
+          is_member: 1,
           args: [
             field_get_node: {
               target: nil,
@@ -34,75 +34,9 @@ block: [
             }
           ],
         },
-        var_def_node: {
-          name: start,
-          value: call_node: {
-            callee: field_get_node: {
-              target: nil,
-              field: time,
-            },
-            is_member: 0,
-            args: [
-
-            ],
-          },
-        },
-        var_def_node: {
-          name: j,
-          value: number_node: 0.000000,
-        },
-        for_node: {
-          id: i,
-          iterable: range_node: {
-            start: number_node: 0.000000,
-            finish: number_node: 10000000.000000,
-          },
-          body: block: [
-            un_op_node: {
-              op: inc,
-              target: field_get_node: {
-                target: nil,
-                field: j,
-              }
-            },
-          ],
-        },
-        var_def_node: {
-          name: end,
-          value: call_node: {
-            callee: field_get_node: {
-              target: nil,
-              field: time,
-            },
-            is_member: 0,
-            args: [
-
-            ],
-          },
-        },
-        call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: log,
-          },
-          is_member: 0,
-          args: [
-            bin_op_node: {
-              op: sub,
-              lhs: field_get_node: {
-                target: nil,
-                field: end,
-              }
-              rhs: field_get_node: {
-                target: nil,
-                field: start,
-              }
-            }
-          ],
-        },
       ]
     }
-    decos: [      deco_node: {
+    decos: [      deco: {
         id: entrypoint
         fields: [],
       }

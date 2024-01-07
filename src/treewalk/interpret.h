@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 #include <variant>
-#include "parse.h"
+#include "../parse.h"
 #include "value.h"
 
 namespace ami::tree {
@@ -89,7 +89,6 @@ namespace ami::tree {
     interpret_result anon_fn_def(node* nod, symbol_table& sym);
 
     using interpret_fn = interpret_result(interpreter::*)(node*, symbol_table&);
-    static interpret_fn interpreters[];
 
     static std::unexpected<std::string>
     fail(std::string const& nod,
@@ -104,5 +103,7 @@ namespace ami::tree {
     interpret_result decorated(node* nod, symbol_table& sym);
 
     interpret_result reject(node*, symbol_table&);
+
+    interpret_result kw_literal(node* nod, symbol_table&);
   };
 }

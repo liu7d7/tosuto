@@ -61,17 +61,17 @@ build CMakeFiles/ami.dir/src/ami.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/
   OBJECT_DIR = CMakeFiles\ami.dir
   OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
 
-build CMakeFiles/ami.dir/src/treewalk/scan.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/treewalk/scan.cpp || cmake_object_order_depends_target_ami
-  DEP_FILE = CMakeFiles\ami.dir\src\treewalk\scan.cpp.obj.d
+build CMakeFiles/ami.dir/src/lex.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/lex.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\lex.cpp.obj.d
   FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
   OBJECT_DIR = CMakeFiles\ami.dir
-  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src\treewalk
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
 
-build CMakeFiles/ami.dir/src/treewalk/parse.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/treewalk/parse.cpp || cmake_object_order_depends_target_ami
-  DEP_FILE = CMakeFiles\ami.dir\src\treewalk\parse.cpp.obj.d
+build CMakeFiles/ami.dir/src/parse.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/parse.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\parse.cpp.obj.d
   FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
   OBJECT_DIR = CMakeFiles\ami.dir
-  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src\treewalk
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src
 
 build CMakeFiles/ami.dir/src/treewalk/interpret.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/treewalk/interpret.cpp || cmake_object_order_depends_target_ami
   DEP_FILE = CMakeFiles\ami.dir\src\treewalk\interpret.cpp.obj.d
@@ -91,6 +91,18 @@ build CMakeFiles/ami.dir/src/vm/vm.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$
   OBJECT_DIR = CMakeFiles\ami.dir
   OBJECT_FILE_DIR = CMakeFiles\ami.dir\src\vm
 
+build CMakeFiles/ami.dir/src/vm/compile.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/vm/compile.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\vm\compile.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src\vm
+
+build CMakeFiles/ami.dir/src/vm/value.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$:/Users/realm/IdeaProjects/ami/src/vm/value.cpp || cmake_object_order_depends_target_ami
+  DEP_FILE = CMakeFiles\ami.dir\src\vm\value.cpp.obj.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\ami.dir
+  OBJECT_FILE_DIR = CMakeFiles\ami.dir\src\vm
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target ami
@@ -99,7 +111,7 @@ build CMakeFiles/ami.dir/src/vm/vm.cpp.obj: CXX_COMPILER__ami_unscanned_Debug C$
 #############################################
 # Link the executable ami.exe
 
-build ami.exe: CXX_EXECUTABLE_LINKER__ami_Debug CMakeFiles/ami.dir/main.cpp.obj CMakeFiles/ami.dir/src/ami.cpp.obj CMakeFiles/ami.dir/src/treewalk/scan.cpp.obj CMakeFiles/ami.dir/src/treewalk/parse.cpp.obj CMakeFiles/ami.dir/src/treewalk/interpret.cpp.obj CMakeFiles/ami.dir/src/treewalk/value.cpp.obj CMakeFiles/ami.dir/src/vm/vm.cpp.obj
+build ami.exe: CXX_EXECUTABLE_LINKER__ami_Debug CMakeFiles/ami.dir/main.cpp.obj CMakeFiles/ami.dir/src/ami.cpp.obj CMakeFiles/ami.dir/src/lex.cpp.obj CMakeFiles/ami.dir/src/parse.cpp.obj CMakeFiles/ami.dir/src/treewalk/interpret.cpp.obj CMakeFiles/ami.dir/src/treewalk/value.cpp.obj CMakeFiles/ami.dir/src/vm/vm.cpp.obj CMakeFiles/ami.dir/src/vm/compile.cpp.obj CMakeFiles/ami.dir/src/vm/value.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\ami.dir

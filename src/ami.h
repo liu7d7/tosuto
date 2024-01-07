@@ -33,6 +33,18 @@ V temp_storage<V>::held;
 #include <queue>
 #include <ostream>
 
+template<typename T>
+concept printable = requires(T const& a) {
+  { a.to_string() } -> std::same_as<std::string>;
+};
+
+template<typename T, typename Stream>
+requires printable<T>
+Stream& operator<<(Stream& outputstream, const T& adapter) {
+  outputstream << adapter.to_string();
+  return outputstream;
+}
+
 template<class Container, class Stream>
 Stream& print_one_value_container
   (Stream& outputstream, const Container& container) {
@@ -61,15 +73,12 @@ const Container& container(const std::stack<Type, Container>& stack) {
   return hacked_stack::container(stack);
 }
 
-template < class Type, class Container >
+template<class Type, class Container>
 const Container& container
-  (const std::queue<Type, Container>& queue)
-{
-  struct HackedQueue : private std::queue<Type, Container>
-  {
+  (const std::queue<Type, Container>& queue) {
+  struct HackedQueue : private std::queue<Type, Container> {
     static const Container& container
-      (const std::queue<Type, Container>& queue)
-    {
+      (const std::queue<Type, Container>& queue) {
       return queue.*&HackedQueue::c;
     }
   };
@@ -78,59 +87,99 @@ const Container& container
 }
 
 template
-  < class Type
-    , template <class OtherType, class Container = std::deque<OtherType> > class Adapter
-    , class Stream
+  <class Type, template<class OtherType, class Container = std::deque<OtherType> > class Adapter, class Stream
   >
 Stream& operator<<
-  (Stream& outputstream, const Adapter<Type>& adapter)
-{
+  (Stream& outputstream, const Adapter<Type>& adapter) {
   return print_one_value_container(outputstream, container(adapter));
 }
 
-  namespace ami {
-    using u8 = uint8_t;
-    using u16 = uint16_t;
+template<class Type, class Stream>
+Stream& operator<<
+  (Stream& outputstream, const std::vector<Type>& adapter) {
+  return print_one_value_container(outputstream, adapter);
+}
 
-    struct pos {
-      size_t idx, col, row;
+namespace ami {
+  using u8 = uint8_t;
+  using u16 = uint16_t;
 
-      [[nodiscard]] std::string to_string() const;
-    };
+  struct pos {
+    size_t idx, col, row;
 
-    template<typename T, typename S, typename Deleter>
-    std::unique_ptr<T, Deleter>
-    dynamic_uptr_cast(std::unique_ptr<S, Deleter>&& p) noexcept {
-      auto converted = std::unique_ptr<T, Deleter>{dynamic_cast<T*>(p.get())};
-      if (converted) {
-        std::swap(converted.get_deleter(), p.get_deleter());
-        p.release();            // no longer owns the pointer
+    [[nodiscard]] std::string to_string() const;
+  };
+
+  struct interned_string {
+    size_t index;
+
+    static std::unordered_map<std::string, size_t> map;
+    static std::vector<std::pair<std::string, size_t>> backing_array;
+
+    inline explicit interned_string(std::string const& str) {
+      auto it = map.find(str);
+      if (it != map.end()) {
+        index = it->second;
+      } else {
+        backing_array.emplace_back(str, std::hash<std::string>()(str));
+        index = backing_array.size() - 1;
+        map.emplace(str, index);
       }
-      return converted;
     }
 
-    template<typename T>
-    std::string to_utf8(
-      const std::basic_string<T, std::char_traits<T>, std::allocator<T>>& source) {
-      std::string result;
-
-      std::wstring_convert<std::codecvt_utf8_utf16<T>, T> convertor;
-      result = convertor.to_bytes(source);
-
-      return result;
+    inline bool operator==(interned_string const& other) const {
+      return index == other.index;
     }
 
-    inline
-    std::basic_string<char16_t, std::char_traits<char16_t>, std::allocator<char16_t>>
-    to_utf16(const std::string& source) {
-      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convertor;
-      return convertor.from_bytes(source);
+    inline interned_string operator+(interned_string const& other) const {
+      return interned_string{backing_array[index].first + backing_array[other.index].first};
     }
 
-    inline
-    std::basic_string<char32_t, std::char_traits<char32_t>, std::allocator<char32_t>>
-    to_utf32(const std::string& source) {
-      std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> convertor;
-      return convertor.from_bytes(source);
+    inline operator std::string const&() const {
+      return backing_array[index].first;
     }
+  };
+
+  template<typename T, typename S, typename Deleter>
+  std::unique_ptr<T, Deleter>
+  dynamic_uptr_cast(std::unique_ptr<S, Deleter>&& p) noexcept {
+    auto converted = std::unique_ptr<T, Deleter>{dynamic_cast<T*>(p.get())};
+    if (converted) {
+      std::swap(converted.get_deleter(), p.get_deleter());
+      p.release();            // no longer owns the pointer
+    }
+    return converted;
   }
+
+  template<typename T>
+  std::string to_utf8(
+    const std::basic_string<T, std::char_traits<T>, std::allocator<T>>& source) {
+    std::string result;
+
+    std::wstring_convert<std::codecvt_utf8_utf16<T>, T> convertor;
+    result = convertor.to_bytes(source);
+
+    return result;
+  }
+
+  inline
+  std::basic_string<char16_t, std::char_traits<char16_t>, std::allocator<char16_t>>
+  to_utf16(const std::string& source) {
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convertor;
+    return convertor.from_bytes(source);
+  }
+
+  inline
+  std::basic_string<char32_t, std::char_traits<char32_t>, std::allocator<char32_t>>
+  to_utf32(const std::string& source) {
+    std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> convertor;
+    return convertor.from_bytes(source);
+  }
+}
+
+template<>
+struct std::hash<ami::interned_string> {
+  size_t operator()(ami::interned_string const& str) const {
+    return ami::interned_string::backing_array[str.index].second;
+  }
+};

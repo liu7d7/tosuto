@@ -12,4 +12,7 @@ namespace ami {
     buf += "}";
     return buf;
   }
+
+  std::unordered_map<std::string, size_t> interned_string::map;
+  std::vector<std::pair<std::string, size_t>> interned_string::backing_array;
 }

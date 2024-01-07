@@ -1,1 +1,5 @@
-1 + 2
+ﾊﾟﾝ := "bread"
+ﾄｰｽﾄ := "toast"
+
+// toast the bread.
+ﾊﾟﾝ = ﾄｰｽﾄ

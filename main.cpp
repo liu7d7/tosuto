@@ -1,21 +1,21 @@
 #include <iostream>
 #include <chrono>
 #include "src/ami.h"
-#include "src/treewalk/lex.h"
-#include "src/treewalk/parse.h"
+#include "src/lex.h"
+#include "src/parse.h"
 #include "src/treewalk/interpret.h"
 #include "src/vm/vm.h"
-#include "src/vm/scan.h"
+#include "src/vm/compile.h"
 
 void test_file(std::string const& filename) {
   std::cout
     << "testing "
     << filename
     << "\n-\n";
-  ami::tree::lexer lexer{filename};
+  ami::lexer lexer{filename};
   auto toks = lexer.lex();
 
-  ami::tree::parser parser{toks};
+  ami::parser parser{toks};
   auto ast = parser.global();
   if (!ast.has_value()) {
     std::cerr << ast.error() << "\n\n\n";
@@ -47,7 +47,7 @@ void test_file(std::string const& filename) {
           std::make_pair([](ami::tree::symbol_table& sym) -> ami::tree::interpret_result {
             auto obj = ami_unwrap(sym.get("obj"));
             auto name = ami_unwrap(sym.get("name"));
-            if (!name->is<std::string>()) return ami::tree::interpreter::fail("Expected string, got " + name->type_name());
+            if (!name->is<std::string>()) return ami::tree::interpreter::fail("Expected str, got " + name->type_name());
             return obj->has_deco(name->get<std::string>());
           }, std::vector<std::pair<std::string, bool>>{
             {"obj", true}, {"name", true}}))},
@@ -56,13 +56,10 @@ void test_file(std::string const& filename) {
           std::make_pair([](ami::tree::symbol_table& sym) -> ami::tree::interpret_result {
             auto obj = ami_unwrap(sym.get("obj"));
             auto name = ami_unwrap(sym.get("name"));
-            if (!name->is<std::string>()) return ami::tree::interpreter::fail("Expected string, got " + name->type_name());
+            if (!name->is<std::string>()) return ami::tree::interpreter::fail("Expected str, got " + name->type_name());
             return obj->get_deco(name->get<std::string>());
           }, std::vector<std::pair<std::string, bool>>{
             {"obj", true}, {"name", true}}))},
-
-        {"false", ami::tree::value::sym_false},
-        {"true", ami::tree::value::sym_true},
 
         {"time", std::make_shared<ami::tree::value>(
           std::make_pair([](ami::tree::symbol_table& sym) -> ami::tree::interpret_result {
@@ -102,8 +99,32 @@ void test_file(std::string const& filename) {
   std::cout << "\n\n";
 }
 
+void test_vm() {
+  auto lex = ami::lexer{"test.ami"};
+
+  auto parse = ami::parser{lex.lex()};
+  auto ast = parse.global();
+  if (!ast.has_value()) throw std::runtime_error(ast.error());
+  std::ofstream("out.txt") << (*ast)->pretty(0);
+
+  auto compile = ami::vm::compiler{};
+  auto res = compile.compile(ast->get());
+  if (!res.has_value()) throw std::runtime_error(res.error());
+  compile.ch.disasm(std::cout);
+  std::cout << "\nvm: \n";
+
+  auto vm = ami::vm::vm{compile.ch};
+  auto interp_res = vm.run(std::cout);
+  if (!interp_res.has_value()) throw std::runtime_error(interp_res.error());
+}
+
 int main() {
+#ifdef WIN32
+  system("chcp 65001>nul");
+#endif
+
   test_file("tests/diacritics.ami");
   test_file("tests/half-width-katakana.ami");
+
   return 0;
 }

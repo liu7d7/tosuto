@@ -1,8 +1,7 @@
 #include "vm.h"
-#include "scan.h"
+#include <iomanip>
 
 namespace ami::vm {
-
   void chunk::disasm(std::ostream& out) {
     out << name << ":\n";
 
@@ -16,38 +15,78 @@ namespace ami::vm {
     auto padding = std::string(4 - off.size(), '0');
     out << padding << off << ' ';
 
-#define AMI_DISASM_SIMPLE_INSTR(op) \
+#define AMI_DISASM_SIMPLE_INSTR(op) case op_code::op: \
   do { \
-    out << #op << '\n'; \
+    out << std::left << std::setw(9) << #op << '\n'; \
     return idx + 1; \
-  } while(false) \
+  } while(false)
+
+#define AMI_DISASM_SIMPLE_INSTR_2(op, name) case op_code::op: \
+  do { \
+    out << std::left << std::setw(9) << #name << '\n'; \
+    return idx + 1; \
+  } while(false)
 
     switch (op(idx)) {
-      case op_code::ret: AMI_DISASM_SIMPLE_INSTR(ret);
-      case op_code::neg: AMI_DISASM_SIMPLE_INSTR(neg);
-      case op_code::add: AMI_DISASM_SIMPLE_INSTR(add);
-      case op_code::sub: AMI_DISASM_SIMPLE_INSTR(sub);
-      case op_code::mul: AMI_DISASM_SIMPLE_INSTR(mul);
-      case op_code::div: AMI_DISASM_SIMPLE_INSTR(div);
+      AMI_DISASM_SIMPLE_INSTR(ret);
+      AMI_DISASM_SIMPLE_INSTR(neg);
+      AMI_DISASM_SIMPLE_INSTR(add);
+      AMI_DISASM_SIMPLE_INSTR(sub);
+      AMI_DISASM_SIMPLE_INSTR(mul);
+      AMI_DISASM_SIMPLE_INSTR(div);
+      AMI_DISASM_SIMPLE_INSTR(pop);
+      AMI_DISASM_SIMPLE_INSTR(eq);
+      AMI_DISASM_SIMPLE_INSTR(lt);
+      AMI_DISASM_SIMPLE_INSTR(gt);
+      AMI_DISASM_SIMPLE_INSTR_2(sym_and, and);
+      AMI_DISASM_SIMPLE_INSTR_2(sym_or, or);
+      AMI_DISASM_SIMPLE_INSTR(inv);
+      AMI_DISASM_SIMPLE_INSTR_2(key_true, true);
+      AMI_DISASM_SIMPLE_INSTR_2(key_false, false);
+      AMI_DISASM_SIMPLE_INSTR_2(key_nil, nil);
       case op_code::lit: {
-        out << "value ";
-        out << literal(idx + 1);
-        out << '\n';
+        out << std::left << std::setw(9) << "lit" << literal(idx + 1) << '\n';
+        return idx + 3;
+      }
+      case op_code::get_global: {
+        out << std::left << std::setw(9) << "get_glob" << literal(idx + 1)
+            << '\n';
+        return idx + 3;
+      }
+      case op_code::set_global: {
+        out << std::left << std::setw(9) << "set_glob" << literal(idx + 1)
+            << '\n';
+        return idx + 3;
+      }
+      case op_code::def_global: {
+        out << std::left << std::setw(9) << "def_glob" << literal(idx + 1)
+            << '\n';
+        return idx + 3;
+      }
+      case op_code::get_local: {
+        out << std::left << std::setw(9) << "get_loc" << u16(idx + 1) << '\n';
+        return idx + 3;
+      }
+      case op_code::set_local: {
+        out << std::left << std::setw(9) << "set_loc" << u16(idx + 1) << '\n';
         return idx + 3;
       }
       default: {
-        out << "uh oh!\n";
+        out << std::left << std::setw(9) << "uh oh!\n";
         return std::numeric_limits<size_t>::max();
       }
     }
   }
 
-  vm::result vm::run(std::ostream& out) {
+  std::expected<void, std::string> vm::run(std::ostream& out) {
 #define AMI_BIN_OP(op) \
   do { \
-    double a = pop(); \
-    double b = pop(); \
-    push(a op b); \
+    auto b = pop(); \
+    auto a = pop(); \
+    if (a.is<value::num>() && b.is<value::num>()) \
+      push(value{a.get<value::num>() op b.get<value::num>()}); \
+    else               \
+      return std::unexpected{"Couldn't do " + a.to_string() + #op + b.to_string()}; \
   } while(false)
 
     for (;;) {
@@ -57,24 +96,120 @@ namespace ami::vm {
       switch (op()) {
         case op_code::ret: {
           out << pop() << '\n';
-          return result::ok;
+          return {};
         }
         case op_code::lit: {
           push(lit());
           break;
         }
-        case op_code::neg: {
-          push(-pop());
+        case op_code::pop: {
+          pop();
           break;
         }
-        case op_code::add: AMI_BIN_OP(+); break;
-        case op_code::sub: AMI_BIN_OP(-); break;
-        case op_code::mul: AMI_BIN_OP(*); break;
-        case op_code::div: AMI_BIN_OP(/); break;
+        case op_code::neg: {
+          value a = pop();
+          if (a.is<value::num>()) {
+            push(value{-a.get<value::num>()});
+          } else {
+            return std::unexpected{
+              "Tried to negate smth that was not a number!"};
+          }
+          break;
+        }
+        case op_code::add: {
+          value b = pop();
+          value a = pop();
+          if (a.is<value::num>() && b.is<value::num>()) {
+            push(value{a.get<value::num>() + b.get<value::num>()});
+          } else if (a.is<value::str>() && b.is<value::str>()) {
+            push(value{a.get<value::str>() + b.get<value::str>()});
+          } else {
+            return std::unexpected{
+              "Couldn't do " + a.to_string() + " + " + b.to_string()};
+          }
+          break;
+        }
+        case op_code::sub: AMI_BIN_OP(-);
+          break;
+        case op_code::mul: AMI_BIN_OP(*);
+          break;
+        case op_code::div: AMI_BIN_OP(/);
+          break;
+        case op_code::lt: AMI_BIN_OP(<);
+          break;
+        case op_code::gt: AMI_BIN_OP(>);
+          break;
         case op_code::mod: {
-          double a = pop();
-          double b = pop();
-          push(fmod(a, b));
+          value b = pop();
+          value a = pop();
+          if (a.is<value::num>() && b.is<value::num>()) {
+            push(value{fmod(a.get<value::num>(), b.get<value::num>())});
+          } else {
+            return std::unexpected{
+              "Couldn't do " + a.to_string() + " % " + b.to_string()};
+          }
+          break;
+        }
+        case op_code::eq: {
+          value b = pop();
+          value a = pop();
+          push(value{a.eq(b)});
+          break;
+        }
+        case op_code::sym_or: {
+          throw std::runtime_error("TODO: not implemented yet");
+        }
+        case op_code::sym_and: {
+          throw std::runtime_error("TODO: not implemented yet");
+        }
+        case op_code::inv: {
+          value a = pop();
+          push(value{!a.is_truthy()});
+          break;
+        }
+        case op_code::key_false: push(value{false});
+          break;
+        case op_code::key_true: push(value{true});
+          break;
+        case op_code::key_nil: push(value{value::nil{}});
+          break;
+        case op_code::set_global: {
+          auto name = lit().get<value::str>();
+          auto it = globals.find(name);
+          if (it != globals.end()) {
+            it->second = peek();
+          } else {
+            return std::unexpected{"Could not find " + std::string(name) + " in globals!"};
+          }
+
+          break;
+        }
+        case op_code::get_global: {
+          auto name = lit().get<value::str>();
+          auto it = globals.find(name);
+          if (it != globals.end()) {
+            push(value{it->second});
+          } else {
+            return std::unexpected{"Could not find " + std::string(name) + " in globals!"};
+          }
+
+          break;
+        }
+        case op_code::def_global: {
+          auto name = lit().get<value::str>();
+          globals[name] = peek();
+          break;
+        }
+        case op_code::get_local: {
+          auto slot = ch.u16(ip);
+          ip += 2;
+          push(value{stack[slot]});
+          break;
+        }
+        case op_code::set_local: {
+          auto slot = ch.u16(ip);
+          ip += 2;
+          stack[slot] = peek();
           break;
         }
       }

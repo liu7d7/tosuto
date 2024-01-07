@@ -10,7 +10,7 @@ namespace ami::tree {
     switch (val.index()) {
       case double_idx:return "number";
       case bool_idx:return "boolean";
-      case string_idx:return "string";
+      case string_idx:return "str";
       case object_idx:return "table";
       case array_idx:return "array";
       case function_idx:
@@ -43,7 +43,7 @@ namespace ami::tree {
           auto res = ami_unwrap(
             to_str.value()->call({shared_from_this()}, sym));
           if (!res->is<std::string>())
-            return interpreter::fail("Expected string from to_str!");
+            return interpreter::fail("Expected str from to_str!");
 
           return res->get<std::string>();
         }

@@ -3,7 +3,7 @@
 #include "value.h"
 #include "interpret.h"
 
-namespace ami::tree {
+namespace tosuto::tree {
   value::value(value_type val, decltype(decos) decos) : val(std::move(val)), decos(std::move(decos)) {}
 
   std::string value::type_name() const {
@@ -40,7 +40,7 @@ namespace ami::tree {
         auto to_str = get("to_str");
 
         if (to_str.has_value()) {
-          auto res = ami_unwrap(
+          auto res = tosuto_unwrap(
             to_str.value()->call({shared_from_this()}, sym));
           if (!res->is<std::string>())
             return interpreter::fail("Expected str from to_str!");
@@ -52,7 +52,7 @@ namespace ami::tree {
         for (auto const& [k, v]: get<object>()) {
           buf += k;
           buf += '=';
-          auto disp = ami_unwrap(v->display(sym));
+          auto disp = tosuto_unwrap(v->display(sym));
           buf += disp;
           buf += ", ";
         }
@@ -63,8 +63,8 @@ namespace ami::tree {
       case function_idx:
       case builtin_function_idx:return "function";
       case range_idx: {
-        auto first = ami_unwrap(get<range>().first->display(sym));
-        auto second = ami_unwrap(get<range>().second->display(sym));
+        auto first = tosuto_unwrap(get<range>().first->display(sym));
+        auto second = tosuto_unwrap(get<range>().second->display(sym));
         return first + ".." + second;
       }
       case range_iter_idx:
@@ -81,7 +81,7 @@ namespace ami::tree {
       return std::make_shared<value>(fmod(get<num>(), other->get<num>()));
     }
 
-    auto mod = ami_unwrap(get("%"));
+    auto mod = tosuto_unwrap(get("%"));
     if (!mod->is<function>() && !mod->is<builtin_function>()) {
       return interpreter::fail("Mod member not found on type " + type_name());
     }
@@ -94,7 +94,7 @@ namespace ami::tree {
       return std::make_shared<value>(get<num>() / other->get<num>());
     }
 
-    auto div = ami_unwrap(get("/"));
+    auto div = tosuto_unwrap(get("/"));
     if (!div->is<function>() && !div->is<builtin_function>()) {
       return interpreter::fail("Div member not found on type " + type_name());
     }
@@ -107,7 +107,7 @@ namespace ami::tree {
       return std::make_shared<value>(get<num>() * other->get<num>());
     }
 
-    auto mul = ami_unwrap(get("*"));
+    auto mul = tosuto_unwrap(get("*"));
     if (!mul->is<function>() && !mul->is<builtin_function>()) {
       return interpreter::fail("Mul member not found on type " + type_name());
     }
@@ -120,7 +120,7 @@ namespace ami::tree {
       return std::make_shared<value>(get<num>() - other->get<num>());
     }
 
-    auto sub = ami_unwrap(get("-"));
+    auto sub = tosuto_unwrap(get("-"));
     if (!sub->is<function>() && !sub->is<builtin_function>()) {
       return interpreter::fail("Sub member not found on type " + type_name());
     }
@@ -138,7 +138,7 @@ namespace ami::tree {
         get<std::string>() + other->get<std::string>());
     }
 
-    auto times = ami_unwrap(get("+"));
+    auto times = tosuto_unwrap(get("+"));
     if (!times->is<function>() && !times->is<builtin_function>()) {
       return interpreter::fail("Add member not found on type " + type_name());
     }
@@ -152,7 +152,7 @@ namespace ami::tree {
                                      std::numeric_limits<double>::epsilon());
     }
 
-    auto eq = ami_unwrap(get("=="));
+    auto eq = tosuto_unwrap(get("=="));
     if (!eq->is<function>() && !eq->is<builtin_function>()) {
       return interpreter::fail("Eq member not found on type " + type_name());
     }
@@ -165,7 +165,7 @@ namespace ami::tree {
   }
 
   interpret_result value::neq(value_ptr& other, symbol_table& sym) {
-    auto equ = ami_unwrap(eq(other, sym));
+    auto equ = tosuto_unwrap(eq(other, sym));
     return equ->invert();
   }
 
@@ -184,12 +184,12 @@ namespace ami::tree {
   std::expected<bool, std::string> value::has_next(symbol_table& sym) {
     if (is<range_iterator>()) {
       auto it = get<range_iterator>();
-      auto cont = ami_unwrap(it.first->neq(it.second.second, sym));
+      auto cont = tosuto_unwrap(it.first->neq(it.second.second, sym));
       return cont->is_truthy();
     }
 
-    auto has_next = ami_unwrap(get("has_next"));
-    auto res = ami_unwrap(has_next->call({shared_from_this()}, sym));
+    auto has_next = tosuto_unwrap(get("has_next"));
+    auto res = tosuto_unwrap(has_next->call({shared_from_this()}, sym));
 
     return res->get<bool>();
   }
@@ -204,8 +204,8 @@ namespace ami::tree {
       return std::make_shared<value>(get<array>().begin());
     }
 
-    auto has_next = ami_unwrap(get("iterator"));
-    auto res = ami_unwrap(has_next->call({shared_from_this()}, sym));
+    auto has_next = tosuto_unwrap(get("iterator"));
+    auto res = tosuto_unwrap(has_next->call({shared_from_this()}, sym));
 
     return res;
   }
@@ -219,8 +219,8 @@ namespace ami::tree {
       return *get<array_iterator>();
     }
 
-    auto has_next = ami_unwrap(get("*deref"));
-    auto res = ami_unwrap(has_next->call({shared_from_this()}, sym));
+    auto has_next = tosuto_unwrap(get("*deref"));
+    auto res = tosuto_unwrap(has_next->call({shared_from_this()}, sym));
 
     return res;
   }
@@ -228,7 +228,7 @@ namespace ami::tree {
   interpret_result value::next(symbol_table& sym) {
     if (is<range_iterator>()) {
       auto& it = get<range_iterator>();
-      auto next = ami_unwrap(it.first->add(sym_one, sym));
+      auto next = tosuto_unwrap(it.first->add(sym_one, sym));
       it.first = next;
       return next;
     }
@@ -238,8 +238,8 @@ namespace ami::tree {
       return *get<array_iterator>();
     }
 
-    auto next = ami_unwrap(get("next"));
-    auto res = ami_unwrap(next->call({shared_from_this()}, sym));
+    auto next = tosuto_unwrap(get("next"));
+    auto res = tosuto_unwrap(next->call({shared_from_this()}, sym));
     return res;
   }
 
@@ -315,8 +315,8 @@ namespace ami::tree {
       return get<builtin_function>().first(new_sym);
     }
 
-    auto call = ami_unwrap(get("()"));
-    auto res = ami_unwrap(call->call(args, sym));
+    auto call = tosuto_unwrap(get("()"));
+    auto res = tosuto_unwrap(call->call(args, sym));
     return res;
   }
 

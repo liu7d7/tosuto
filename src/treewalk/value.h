@@ -8,7 +8,7 @@
 #include <variant>
 #include "../parse.h"
 
-namespace ami::tree {
+namespace tosuto::tree {
   struct value;
   struct symbol_table;
   using value_ptr = std::shared_ptr<value>;

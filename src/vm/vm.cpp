@@ -1,7 +1,7 @@
 #include "vm.h"
 #include <iomanip>
 
-namespace ami::vm {
+namespace tosuto::vm {
   void chunk::disasm(std::ostream& out) {
     out << name << ":\n";
 
@@ -15,35 +15,35 @@ namespace ami::vm {
     auto padding = std::string(4 - off.size(), '0');
     out << padding << off << ' ';
 
-#define AMI_DISASM_SIMPLE_INSTR(op) case op_code::op: \
+#define TOSUTO_DISASM_SIMPLE_INSTR(op) case op_code::op: \
   do { \
     out << std::left << std::setw(9) << #op << '\n'; \
     return idx + 1; \
   } while(false)
 
-#define AMI_DISASM_SIMPLE_INSTR_2(op, name) case op_code::op: \
+#define TOSUTO_DISASM_SIMPLE_INSTR_2(op, name) case op_code::op: \
   do { \
     out << std::left << std::setw(9) << #name << '\n'; \
     return idx + 1; \
   } while(false)
 
     switch (op(idx)) {
-      AMI_DISASM_SIMPLE_INSTR(ret);
-      AMI_DISASM_SIMPLE_INSTR(neg);
-      AMI_DISASM_SIMPLE_INSTR(add);
-      AMI_DISASM_SIMPLE_INSTR(sub);
-      AMI_DISASM_SIMPLE_INSTR(mul);
-      AMI_DISASM_SIMPLE_INSTR(div);
-      AMI_DISASM_SIMPLE_INSTR(pop);
-      AMI_DISASM_SIMPLE_INSTR(eq);
-      AMI_DISASM_SIMPLE_INSTR(lt);
-      AMI_DISASM_SIMPLE_INSTR(gt);
-      AMI_DISASM_SIMPLE_INSTR_2(sym_and, and);
-      AMI_DISASM_SIMPLE_INSTR_2(sym_or, or);
-      AMI_DISASM_SIMPLE_INSTR(inv);
-      AMI_DISASM_SIMPLE_INSTR_2(key_true, true);
-      AMI_DISASM_SIMPLE_INSTR_2(key_false, false);
-      AMI_DISASM_SIMPLE_INSTR_2(key_nil, nil);
+      TOSUTO_DISASM_SIMPLE_INSTR(ret);
+      TOSUTO_DISASM_SIMPLE_INSTR(neg);
+      TOSUTO_DISASM_SIMPLE_INSTR(add);
+      TOSUTO_DISASM_SIMPLE_INSTR(sub);
+      TOSUTO_DISASM_SIMPLE_INSTR(mul);
+      TOSUTO_DISASM_SIMPLE_INSTR(div);
+      TOSUTO_DISASM_SIMPLE_INSTR(pop);
+      TOSUTO_DISASM_SIMPLE_INSTR(eq);
+      TOSUTO_DISASM_SIMPLE_INSTR(lt);
+      TOSUTO_DISASM_SIMPLE_INSTR(gt);
+      TOSUTO_DISASM_SIMPLE_INSTR_2(sym_and, and);
+      TOSUTO_DISASM_SIMPLE_INSTR_2(sym_or, or);
+      TOSUTO_DISASM_SIMPLE_INSTR(inv);
+      TOSUTO_DISASM_SIMPLE_INSTR_2(key_true, true);
+      TOSUTO_DISASM_SIMPLE_INSTR_2(key_false, false);
+      TOSUTO_DISASM_SIMPLE_INSTR_2(key_nil, nil);
       case op_code::lit: {
         out << std::left << std::setw(9) << "lit" << literal(idx + 1) << '\n';
         return idx + 3;
@@ -79,7 +79,7 @@ namespace ami::vm {
   }
 
   std::expected<void, std::string> vm::run(std::ostream& out) {
-#define AMI_BIN_OP(op) \
+#define TOSUTO_BIN_OP(op) \
   do { \
     auto b = pop(); \
     auto a = pop(); \
@@ -129,15 +129,15 @@ namespace ami::vm {
           }
           break;
         }
-        case op_code::sub: AMI_BIN_OP(-);
+        case op_code::sub: TOSUTO_BIN_OP(-);
           break;
-        case op_code::mul: AMI_BIN_OP(*);
+        case op_code::mul: TOSUTO_BIN_OP(*);
           break;
-        case op_code::div: AMI_BIN_OP(/);
+        case op_code::div: TOSUTO_BIN_OP(/);
           break;
-        case op_code::lt: AMI_BIN_OP(<);
+        case op_code::lt: TOSUTO_BIN_OP(<);
           break;
-        case op_code::gt: AMI_BIN_OP(>);
+        case op_code::gt: TOSUTO_BIN_OP(>);
           break;
         case op_code::mod: {
           value b = pop();

@@ -1,7 +1,7 @@
 #include <iostream>
-#include "ami.h"
+#include "tosuto.h"
 
-namespace ami {
+namespace tosuto {
   std::string pos::to_string() const {
     std::string buf = "pos{idx=";
     buf += std::to_string(idx);

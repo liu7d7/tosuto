@@ -16,10 +16,10 @@
 #include <codecvt>
 #include <memory>
 
-#define ami_unwrap(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define ami_unwrap_move(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define ami_discard(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define ami_dyn_cast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
+#define tosuto_unwrap(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_unwrap_move(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_discard(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_dyn_cast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
 
 template<typename V>
 struct temp_storage {
@@ -100,7 +100,7 @@ Stream& operator<<
   return print_one_value_container(outputstream, adapter);
 }
 
-namespace ami {
+namespace tosuto {
   using u8 = uint8_t;
   using u16 = uint16_t;
 
@@ -178,8 +178,8 @@ namespace ami {
 }
 
 template<>
-struct std::hash<ami::interned_string> {
-  size_t operator()(ami::interned_string const& str) const {
-    return ami::interned_string::backing_array[str.index].second;
+struct std::hash<tosuto::interned_string> {
+  size_t operator()(tosuto::interned_string const& str) const {
+    return tosuto::interned_string::backing_array[str.index].second;
   }
 };

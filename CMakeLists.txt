@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.27)
-project(ami)
+project(tosuto)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(ami main.cpp
-        src/ami.h
-        src/ami.cpp
+add_executable(tosuto main.cpp
+        src/tosuto.h
+        src/tosuto.cpp
         src/lex.h
         src/lex.cpp
         src/parse.h

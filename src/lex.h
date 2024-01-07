@@ -2,9 +2,9 @@
 
 #include <string>
 #include <utility>
-#include "ami.h"
+#include "tosuto.h"
 
-namespace ami {
+namespace tosuto {
   enum class tok_type {
     id,
     colon,
@@ -137,9 +137,9 @@ namespace ami {
   };
 
   struct lexer {
-    std::u16string text;
+    std::u32string text;
     pos cpos = {.idx = 0, .col = 1, .row = 1};
-    char16_t ch;
+    char32_t ch;
 
     explicit lexer(std::string const& path);
 
@@ -147,8 +147,8 @@ namespace ami {
 
     std::vector<token> lex();
 
-    static bool is_id_start(char16_t ch);
+    static bool is_id_start(char32_t ch);
 
-    static bool is_id_continue(char16_t ch);
+    static bool is_id_continue(char32_t ch);
   };
 }

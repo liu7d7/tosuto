@@ -4,7 +4,7 @@
 #include <memory>
 #include "parse.h"
 
-namespace ami {
+namespace tosuto {
   parser::parser(std::vector<token> toks) :
     toks(std::move(toks)),
     idx(0) {
@@ -20,7 +20,7 @@ namespace ami {
 
   std::expected<std::unique_ptr<node>, std::string> parser::block() {
     pos begin = tok.begin;
-    ami_discard(expect(tok_type::l_curly));
+    tosuto_discard(expect(tok_type::l_curly));
 
     std::vector<std::unique_ptr<node>> exprs;
     while (tok.type != tok_type::r_curly) {
@@ -47,11 +47,11 @@ namespace ami {
 
   std::expected<std::unique_ptr<node>, std::string> parser::for_loop() {
     pos begin = tok.begin;
-    ami_discard(expect(tok_type::key_for));
-    auto id = ami_unwrap(expect(tok_type::id));
-    ami_discard(expect(tok_type::colon));
-    auto iterable = ami_unwrap_move(expr());
-    auto body = ami_unwrap_move(block());
+    tosuto_discard(expect(tok_type::key_for));
+    auto id = tosuto_unwrap(expect(tok_type::id));
+    tosuto_discard(expect(tok_type::colon));
+    auto iterable = tosuto_unwrap_move(expr());
+    auto body = tosuto_unwrap_move(block());
 
     return std::make_unique<for_node>(id.lexeme, std::move(iterable), std::move(body), begin, body->end);
   }
@@ -61,19 +61,19 @@ namespace ami {
     while (tok.type == tok_type::at) {
       pos begin = tok.begin;
       advance();
-      token id = ami_unwrap(expect(tok_type::id));
+      token id = tosuto_unwrap(expect(tok_type::id));
       std::vector<std::pair<std::string, std::unique_ptr<node>>> fields;
       if (tok.type == tok_type::l_paren) {
         advance();
         while (tok.type == tok_type::id) {
-          token field_id = ami_unwrap(expect(tok_type::id));
-          ami_discard(expect(tok_type::assign));
-          auto field_val = ami_unwrap_move(expr());
+          token field_id = tosuto_unwrap(expect(tok_type::id));
+          tosuto_discard(expect(tok_type::assign));
+          auto field_val = tosuto_unwrap_move(expr());
           consume(tok_type::comma);
           fields.emplace_back(field_id.lexeme, std::move(field_val));
         }
 
-        ami_discard(expect(tok_type::r_paren));
+        tosuto_discard(expect(tok_type::r_paren));
       }
 
       decos.push_back(std::make_unique<deco_node>(id.lexeme, std::move(fields), begin, tok.begin));
@@ -83,13 +83,13 @@ namespace ami {
   }
 
   std::expected<std::unique_ptr<node>, std::string> parser::statement() {
-    auto decor = ami_unwrap_move(decos());
+    auto decor = tosuto_unwrap_move(decos());
     if (tok.type == tok_type::id &&
         (next.type == tok_type::colon || next.type == tok_type::l_curly)) {
       if (decor.empty()) {
         return function();
       } else {
-        auto fn = ami_unwrap_move(function());
+        auto fn = tosuto_unwrap_move(function());
         return std::make_unique<decorated_node>(std::move(decor), std::move(fn), decor.front()->begin, tok.begin);
       }
     }
@@ -122,7 +122,7 @@ namespace ami {
         if (decor.empty()) {
           return expr();
         } else {
-          auto fn = ami_unwrap_move(expr());
+          auto fn = tosuto_unwrap_move(expr());
           return std::make_unique<decorated_node>(std::move(decor), std::move(fn), decor.front()->begin, tok.begin);
         }
       }
@@ -139,10 +139,10 @@ namespace ami {
     }
 
     std::string id = tok.lexeme;
-    auto lhs = ami_unwrap_move(assign());
+    auto lhs = tosuto_unwrap_move(assign());
     while (tok.type == tok_type::walrus) {
       advance();
-      auto rhs = ami_unwrap_move(assign());
+      auto rhs = tosuto_unwrap_move(assign());
       lhs = std::make_unique<var_def_node>(id, std::move(rhs), lhs->begin, rhs->end);
     }
 
@@ -160,11 +160,11 @@ namespace ami {
     };
 
   std::expected<std::unique_ptr<node>, std::string> parser::assign() {
-    auto lhs = ami_unwrap_move(sym_or());
+    auto lhs = tosuto_unwrap_move(sym_or());
     while (assign_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = ami_unwrap_move(sym_or());
+      auto rhs = tosuto_unwrap_move(sym_or());
       lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
     }
 
@@ -172,10 +172,10 @@ namespace ami {
   }
 
   std::expected<std::unique_ptr<node>, std::string> parser::sym_or() {
-    auto lhs = ami_unwrap_move(sym_and());
+    auto lhs = tosuto_unwrap_move(sym_and());
     while (tok.type == tok_type::sym_or) {
       advance();
-      auto rhs = ami_unwrap_move(sym_and());
+      auto rhs = tosuto_unwrap_move(sym_and());
       lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), tok_type::sym_or, lhs->begin, rhs->end);
     }
 
@@ -183,10 +183,10 @@ namespace ami {
   }
 
   std::expected<std::unique_ptr<node>, std::string> parser::sym_and() {
-    auto lhs = ami_unwrap_move(comp());
+    auto lhs = tosuto_unwrap_move(comp());
     while (tok.type == tok_type::sym_and) {
       advance();
-      auto rhs = ami_unwrap_move(comp());
+      auto rhs = tosuto_unwrap_move(comp());
       lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), tok_type::sym_and, lhs->begin, rhs->end);
     }
 
@@ -204,11 +204,11 @@ namespace ami {
     };
 
   std::expected<std::unique_ptr<node>, std::string> parser::comp() {
-    auto lhs = ami_unwrap_move(add());
+    auto lhs = tosuto_unwrap_move(add());
     while (comp_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = ami_unwrap_move(add());
+      auto rhs = tosuto_unwrap_move(add());
       lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
     }
 
@@ -222,11 +222,11 @@ namespace ami {
     };
 
   std::expected<std::unique_ptr<node>, std::string> parser::add() {
-    auto lhs = ami_unwrap_move(mul());
+    auto lhs = tosuto_unwrap_move(mul());
     while (add_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = ami_unwrap_move(mul());
+      auto rhs = tosuto_unwrap_move(mul());
       lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
     }
 
@@ -241,7 +241,7 @@ namespace ami {
     };
 
   std::expected<std::unique_ptr<node>, std::string> parser::mul() {
-    auto lhs = ami_unwrap_move(range());
+    auto lhs = tosuto_unwrap_move(range());
     while (mul_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
@@ -258,7 +258,7 @@ namespace ami {
           lhs = std::make_unique<un_op_node>(std::move(lhs), tok_type::mul, lhs->begin, tok.begin);
         }
       } else {
-        auto rhs = ami_unwrap_move(thing);
+        auto rhs = tosuto_unwrap_move(thing);
         lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
       }
     }
@@ -267,10 +267,10 @@ namespace ami {
   }
 
   std::expected<std::unique_ptr<node>, std::string> parser::range() {
-    std::unique_ptr<node> lhs = ami_unwrap_move(with());
+    std::unique_ptr<node> lhs = tosuto_unwrap_move(with());
     if (tok.type == tok_type::range) {
       advance();
-      std::unique_ptr<node> rhs = ami_unwrap_move(with());
+      std::unique_ptr<node> rhs = tosuto_unwrap_move(with());
       lhs = std::make_unique<range_node>(std::move(lhs), std::move(rhs), lhs->begin, rhs->end);
     }
 
@@ -278,10 +278,10 @@ namespace ami {
   }
 
   std::expected<std::unique_ptr<node>, std::string> parser::with() {
-    std::unique_ptr<node> lhs = ami_unwrap_move(pre_unary());
+    std::unique_ptr<node> lhs = tosuto_unwrap_move(pre_unary());
     if (tok.type == tok_type::key_with) {
       advance();
-      std::unique_ptr<node> rhs = ami_unwrap_move(pre_unary());
+      std::unique_ptr<node> rhs = tosuto_unwrap_move(pre_unary());
       if (rhs->type != node_type::object)
         return std::unexpected{"Expected object on rhs of with expr!"};
 
@@ -303,7 +303,7 @@ namespace ami {
     if (pre_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto body = ami_unwrap_move(post_unary());
+      auto body = tosuto_unwrap_move(post_unary());
       return std::make_unique<un_op_node>(std::move(body), type, begin, body->end);
     }
 
@@ -318,7 +318,7 @@ namespace ami {
 
   std::expected<std::unique_ptr<node>, std::string> parser::post_unary() {
     pos begin = tok.begin;
-    auto body = ami_unwrap_move(call());
+    auto body = tosuto_unwrap_move(call());
     if (post_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
@@ -330,12 +330,12 @@ namespace ami {
 
   std::expected<std::unique_ptr<node>, std::string> parser::call() {
     pos begin = tok.begin;
-    std::unique_ptr<node> body = ami_unwrap_move(field_get());
+    std::unique_ptr<node> body = tosuto_unwrap_move(field_get());
     while (tok.type == tok_type::l_paren) {
       advance();
       std::vector<std::unique_ptr<node>> args;
       while (tok.type != tok_type::r_paren) {
-        auto exp = ami_unwrap_move(expr());
+        auto exp = tosuto_unwrap_move(expr());
         args.push_back(std::move(exp));
         if (tok.type == tok_type::comma) {
           advance();
@@ -352,14 +352,14 @@ namespace ami {
 
   std::expected<std::unique_ptr<node>, std::string> parser::field_get() {
     pos begin = tok.begin;
-    std::unique_ptr<node> body = ami_unwrap_move(atom());
+    std::unique_ptr<node> body = tosuto_unwrap_move(atom());
     while (tok.type == tok_type::dot) {
       advance();
       if (tok.type == tok_type::l_paren) {
         advance();
         std::vector<std::unique_ptr<node>> args;
         while (tok.type != tok_type::r_paren) {
-          auto exp = ami_unwrap_move(expr());
+          auto exp = tosuto_unwrap_move(expr());
           args.push_back(std::move(exp));
           if (tok.type == tok_type::comma) {
             advance();
@@ -372,7 +372,7 @@ namespace ami {
         continue;
       }
 
-      token id = ami_unwrap(expect(tok_type::id));
+      token id = tosuto_unwrap(expect(tok_type::id));
 
       body = std::make_unique<field_get_node>(std::move(body), id.lexeme, begin, id.end);
     }
@@ -385,8 +385,8 @@ namespace ami {
     switch (tok.type) {
       case tok_type::l_paren: {
         advance();
-        auto exp = ami_unwrap_move(expr());
-        ami_discard(expect(tok_type::r_paren));
+        auto exp = tosuto_unwrap_move(expr());
+        tosuto_discard(expect(tok_type::r_paren));
         return exp;
       }
       case tok_type::number: {
@@ -402,20 +402,20 @@ namespace ami {
       case tok_type::key_if: {
         std::vector<std::pair<std::unique_ptr<node>, std::unique_ptr<node>>> cases;
         advance();
-        auto exp = ami_unwrap_move(expr());
-        auto body = ami_unwrap_move(block());
+        auto exp = tosuto_unwrap_move(expr());
+        auto body = tosuto_unwrap_move(block());
         cases.emplace_back(std::move(exp), std::move(body));
         while (tok.type == tok_type::key_elif) {
           advance();
-          exp = ami_unwrap_move(expr());
-          body = ami_unwrap_move(block());
+          exp = tosuto_unwrap_move(expr());
+          body = tosuto_unwrap_move(block());
           cases.emplace_back(std::move(exp), std::move(body));
         }
 
         std::unique_ptr<node> other = nullptr;
         if (tok.type == tok_type::key_else) {
           advance();
-          other = ami_unwrap_move(block());
+          other = tosuto_unwrap_move(block());
         }
 
         return std::make_unique<if_node>(std::move(cases), std::move(other), begin, tok.begin);
@@ -436,18 +436,18 @@ namespace ami {
           advance();
 
           if (tok.type == tok_type::colon) {
-            auto body = ami_unwrap_move(function());
+            auto body = tosuto_unwrap_move(function());
             fields.emplace_back(id, std::move(body));
           } else {
-            ami_discard(expect(tok_type::assign));
-            auto body = ami_unwrap_move(expr());
+            tosuto_discard(expect(tok_type::assign));
+            auto body = tosuto_unwrap_move(expr());
             fields.emplace_back(id, std::move(body));
           }
 
           consume(tok_type::comma);
         }
 
-        ami_discard(expect(tok_type::r_object));
+        tosuto_discard(expect(tok_type::r_object));
         return std::make_unique<object_node>(std::move(fields), begin, tok.begin);
       }
       case tok_type::key_false: {
@@ -507,12 +507,12 @@ namespace ami {
 
     if (tok.type == tok_type::r_arrow) {
       advance();
-      auto body = ami_unwrap_move(expr());
+      auto body = tosuto_unwrap_move(expr());
       return std::make_unique<fn_def_node>(id, args, std::move(body), begin, body->end);
     }
 
-    ami_discard(expect(tok_type::l_curly, false));
-    auto body = ami_unwrap_move(block());
+    tosuto_discard(expect(tok_type::l_curly, false));
+    auto body = tosuto_unwrap_move(block());
     return std::make_unique<fn_def_node>(id, args, std::move(body), begin, body->end);
   }
 

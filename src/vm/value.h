@@ -5,9 +5,9 @@
 #include <numeric>
 #include <variant>
 #include <cmath>
-#include "../ami.h"
+#include "../tosuto.h"
 
-namespace ami::vm {
+namespace tosuto::vm {
   struct value {
     using num = double;
     constexpr static num epsilon = std::numeric_limits<num>::epsilon();

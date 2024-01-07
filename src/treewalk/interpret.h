@@ -9,7 +9,7 @@
 #include "../parse.h"
 #include "value.h"
 
-namespace ami::tree {
+namespace tosuto::tree {
   using namespace std::string_literals;
 
   std::string repeat(std::string const& input, size_t num);

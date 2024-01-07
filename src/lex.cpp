@@ -1,38 +1,38 @@
 #include <sstream>
 #include "lex.h"
 
-namespace ami {
-  static std::unordered_map<std::u16string, tok_type> keywords =
+namespace tosuto {
+  static std::unordered_map<std::u32string, tok_type> keywords =
     {
-      {u"if",    tok_type::key_if},
-      {u"elif",  tok_type::key_elif},
-      {u"else",  tok_type::key_else},
-      {u"fun",   tok_type::key_fun},
-      {u"ret",   tok_type::key_ret},
-      {u"next",  tok_type::key_next},
-      {u"break", tok_type::key_break},
-      {u"for",   tok_type::key_for},
-      {u"with",  tok_type::key_with},
-      {u"false", tok_type::key_false},
-      {u"true",  tok_type::key_true},
-      {u"nil",   tok_type::key_nil},
+      {U"if",    tok_type::key_if},
+      {U"elif",  tok_type::key_elif},
+      {U"else",  tok_type::key_else},
+      {U"fun",   tok_type::key_fun},
+      {U"ret",   tok_type::key_ret},
+      {U"next",  tok_type::key_next},
+      {U"break", tok_type::key_break},
+      {U"for",   tok_type::key_for},
+      {U"with",  tok_type::key_with},
+      {U"false", tok_type::key_false},
+      {U"true",  tok_type::key_true},
+      {U"nil",   tok_type::key_nil},
     };
 
-  static std::unordered_map<char16_t, tok_type> symbols =
+  static std::unordered_map<char32_t, tok_type> symbols =
     {
-      {']',  tok_type::r_square},
-      {'{',  tok_type::l_curly},
-      {'}',  tok_type::r_curly},
-      {'(',  tok_type::l_paren},
-      {')',  tok_type::r_paren},
-      {'&',  tok_type::sym_and},
-      {'|',  tok_type::sym_or},
-      {',',  tok_type::comma},
-      {'.',  tok_type::dot},
-      {'!',  tok_type::exclaim},
-      {';',  tok_type::semicolon},
-      {'\\', tok_type::backslash},
-      {'@',  tok_type::at},
+      {U']',  tok_type::r_square},
+      {U'{',  tok_type::l_curly},
+      {U'}',  tok_type::r_curly},
+      {U'(',  tok_type::l_paren},
+      {U')',  tok_type::r_paren},
+      {U'&',  tok_type::sym_and},
+      {U'|',  tok_type::sym_or},
+      {U',',  tok_type::comma},
+      {U'.',  tok_type::dot},
+      {U'!',  tok_type::exclaim},
+      {U';',  tok_type::semicolon},
+      {U'\\', tok_type::backslash},
+      {U'@',  tok_type::at},
     };
 
   lexer::lexer(std::string const& path) :
@@ -40,7 +40,7 @@ namespace ami {
       ([&path] {
         std::stringstream out;
         out << std::ifstream(path).rdbuf();
-        return to_utf16(out.str());
+        return to_utf32(out.str());
       })()) {
     ch = text[0];
   }
@@ -62,7 +62,7 @@ namespace ami {
     while (cpos.idx < text.length()) {
       pos begin = cpos;
       if (is_id_start(ch)) {
-        std::u16string buf;
+        std::u32string buf;
         while (is_id_continue(ch)) {
           buf += ch;
           advance();
@@ -179,17 +179,17 @@ namespace ami {
           toks.emplace_back(tok_type::mod, "%", begin, cpos);
         }
       } else if (symbols.contains(ch)) {
-        char16_t cur = ch;
+        char32_t cur = ch;
         advance();
-        toks.emplace_back(symbols[cur], to_utf8(std::u16string(1, cur)), begin,
+        toks.emplace_back(symbols[cur], to_utf8(std::u32string(1, cur)), begin,
                           cpos);
       } else if (isdigit(ch)) {
-        std::u16string buf;
+        std::u32string buf;
         bool range = false;
         while (isdigit(ch) || ch == '.') {
           buf += ch;
           advance();
-          if (buf.ends_with(u"..")) {
+          if (buf.ends_with(U"..")) {
             buf = buf.substr(0, buf.length() - 2);
             range = true;
             break;
@@ -203,11 +203,11 @@ namespace ami {
         }
       } else if (ch == '"') {
         advance();
-        std::u16string buf;
+        std::u32string buf;
         while (ch != '"') {
           if (ch == '\\') {
             advance();
-            char16_t esc;
+            char32_t esc;
             switch (ch) {
               case 'n':esc = '\n';
                 break;
@@ -237,7 +237,7 @@ namespace ami {
         }
       } else if (ch == '`') {
         advance();
-        std::u16string buf;
+        std::u32string buf;
         while (ch != '`') {
           buf += ch;
           advance();
@@ -261,23 +261,22 @@ namespace ami {
     return toks;
   }
 
-  bool lexer::is_id_start(char16_t ch) {
+  bool lexer::is_id_start(char32_t ch) {
     return isalpha(ch)
            || ch == '_'
            || ch == '$'
            || (ch >= 0xff61 && ch <= 0xff9F) // half-width katakana
-           ||
-           (ch >= 0x0300 && ch <= 0x036f) // diacritics (combining characters)
+           || (ch >= 0x0300 && ch <= 0x036f) // diacritics (combining characters)
            || (ch >= 128 && ch <= 255); // diacritics (extended ascii)
   }
 
-  bool lexer::is_id_continue(char16_t ch) {
+  bool lexer::is_id_continue(char32_t ch) {
     return is_id_start(ch) || isdigit(ch);
   }
 
   std::string token::to_string() const {
     std::string buf = "token{type=";
-    buf += ami::to_string(type);
+    buf += tosuto::to_string(type);
     buf += ", lexeme=";
     buf += lexeme;
     buf += ", begin=";

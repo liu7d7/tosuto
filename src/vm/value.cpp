@@ -1,7 +1,7 @@
 #include <utility>
 #include "value.h"
 
-namespace ami::vm {
+namespace tosuto::vm {
   std::string vm::value::to_string() const {
     switch (val.index()) {
       case 0: return std::to_string(get<num>());

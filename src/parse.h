@@ -3,10 +3,10 @@
 #include <string>
 #include <sstream>
 #include <memory>
-#include "ami.h"
+#include "tosuto.h"
 #include "lex.h"
 
-namespace ami {
+namespace tosuto {
   enum class node_type : u8 {
     fn_def,
     block,

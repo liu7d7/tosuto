@@ -30,5 +30,3 @@ pass it to the overloaded call operator on an object called ``toaster``, which
 takes two arguments: an implicitly passed ``my``, as well as ``bread``. Both are
 passed by reference, so when we set the argument ``bread`` to ``my.bread``, the
 outer variable ``bread`` is set to ``"toast"``.
-
-### Syntax

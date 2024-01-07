@@ -290,7 +290,10 @@ namespace tosuto::tree {
       symbol_table new_sym{std::unordered_map{arg_map.begin(), arg_map.end()},
                            &sym};
 
-      return interp.interpret(get<function>()->body.get(), new_sym);
+      interp.blk_ctx.push(interpreter::block_context::function);
+      auto thing = interp.interpret(get<function>()->body.get(), new_sym);
+      interp.blk_ctx.pop();
+      return thing;
     }
 
     if (is<builtin_function>()) {
@@ -312,7 +315,10 @@ namespace tosuto::tree {
       symbol_table new_sym{std::unordered_map{arg_map.begin(), arg_map.end()},
                            &sym};
 
-      return get<builtin_function>().first(new_sym);
+      interp.blk_ctx.push(interpreter::block_context::function);
+      auto thing = get<builtin_function>().first(new_sym);
+      interp.blk_ctx.pop();
+      return thing;
     }
 
     auto call = tosuto_unwrap(get("()"));

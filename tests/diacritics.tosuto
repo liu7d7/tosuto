@@ -2,9 +2,9 @@
 
 @entrypoint
 bonjour : argv {
-  espérer("je peux avoir une vie!")
+  espérer.("je peux avoir une vie!")
 }
 
 espérer : quoi {
-  log("j'espère que " + quoi)
+  log.("j'espère que " + quoi)
 }

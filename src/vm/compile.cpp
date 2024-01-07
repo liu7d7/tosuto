@@ -12,6 +12,7 @@ namespace tosuto::vm {
     {node_type::string, &compiler::string},
     {node_type::var_def, &compiler::var_def},
     {node_type::field_get, &compiler::field_get},
+    {node_type::if_stmt, &compiler::if_stmt},
   };
 
 #define TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(op) case tok_type::op: ch.add(op_code::op); break;
@@ -69,12 +70,61 @@ namespace tosuto::vm {
   void compiler::end_block() {
     depth--;
 
-    auto it = locals.rbegin();
-    while (it != locals.rend() && it->depth > depth) {
+    auto it = int(locals.size() - 1);
+    while (it != 0 && locals[it].depth > depth) {
       ch.add(op_code::pop);
       it--;
       locals.pop_back();
     }
+  }
+
+  size_t compiler::emit_jump(op_code type) {
+    ch.add(type);
+    ch.add(u8(0xff));
+    ch.add(u8(0xff));
+    return ch.data.size() - 2;
+  }
+
+  std::expected<void, std::string> compiler::patch_jump(size_t offset) {
+    size_t jump = ch.data.size() - offset - 2;
+
+    if (jump > max_of<u16>) {
+      return std::unexpected{"Tried to jump farther than a u16 can store!"};
+    }
+
+    ch.data[offset] = u8(jump & 0xff);
+    ch.data[offset + 1] = u8(jump >> 8 & 0xff);
+
+    return {};
+  }
+
+  std::expected<void, std::string> compiler::if_stmt(node* n) {
+    auto it = tosuto_dyn_cast(if_node*, n);
+
+    const size_t invalid_patch = max_of<size_t>;
+    size_t else_jump = invalid_patch;
+    for (size_t i = 0; i < it->cases.size(); i++) {
+      tosuto_discard(compile(it->cases[i].first.get()));
+      size_t then_jump = emit_jump(op_code::jmpf);
+      ch.add(op_code::pop);
+      tosuto_discard(compile(it->cases[i].second.get()));
+      if (i == it->cases.size() - 1) {
+        else_jump = emit_jump(op_code::jmp);
+      }
+
+      tosuto_discard(patch_jump(then_jump));
+      if (i != it->cases.size() - 1) {
+        ch.add(op_code::pop);
+      }
+    }
+
+    if (it->else_case) {
+      tosuto_discard(compile(it->else_case.get()));
+    }
+
+    tosuto_discard(patch_jump(else_jump));
+
+    return {};
   }
 
   std::expected<void, std::string> compiler::kw_literal(node* n) {
@@ -112,6 +162,7 @@ namespace tosuto::vm {
     tosuto_discard(compile(it->value.get()));
 
     if (depth > 0) {
+      ch.add(op_code::key_nil);
       tosuto_discard(add_local(it->name));
     } else {
       ch.add(op_code::def_global);
@@ -183,6 +234,18 @@ namespace tosuto::vm {
   }
 
   std::expected<void, std::string> compiler::block(node* n) {
+    begin_block();
+    auto it = tosuto_dyn_cast(block_node*, n);
+    for (auto const& exp : it->exprs) {
+      tosuto_discard(compile(exp.get()));
+      ch.add(op_code::pop);
+    }
+
+    end_block();
+    return {};
+  }
+
+  std::expected<void, std::string> compiler::global(node* n) {
     auto it = tosuto_dyn_cast(block_node*, n);
     auto len = it->exprs.size();
     auto i = 0;

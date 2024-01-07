@@ -43,5 +43,13 @@ namespace tosuto::vm {
     void end_block();
 
     std::optional<u16> resolve_local(std::string const& name);
+
+    std::expected<void, std::string> if_stmt(node* n);
+
+    size_t emit_jump(op_code type);
+
+    std::expected<void, std::string> patch_jump(size_t offset);
+
+    std::expected<void, std::string> global(node* n);
   };
 }

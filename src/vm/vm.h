@@ -23,7 +23,9 @@ namespace tosuto::vm {
     inv,
     key_nil, key_false, key_true,
     get_global, set_global, def_global,
-    get_local, set_local
+    get_local, set_local,
+    jmpf,
+    jmp
   };
 
   struct chunk {

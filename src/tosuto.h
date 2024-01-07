@@ -104,6 +104,9 @@ namespace tosuto {
   using u8 = uint8_t;
   using u16 = uint16_t;
 
+  template<typename T>
+  constexpr T max_of = std::numeric_limits<T>::max();
+
   struct pos {
     size_t idx, col, row;
 

@@ -21,8 +21,8 @@ void test_file(std::string const& filename) {
     std::cerr << ast.error() << "\n\n\n";
     return;
   }
-  std::ofstream("out.txt") << (*ast)->pretty(0);
 
+  std::ofstream("out.txt") << (*ast)->pretty(0);
   tosuto::tree::symbol_table globals
     {
       {
@@ -107,7 +107,7 @@ void test_vm() {
   std::ofstream("out.txt") << (*ast)->pretty(0);
 
   auto compile = tosuto::vm::compiler{};
-  auto res = compile.compile(ast->get());
+  auto res = compile.global(ast->get());
   if (!res.has_value()) throw std::runtime_error(res.error());
   compile.ch.disasm(std::cout);
   std::cout << "\nvm: \n";
@@ -124,6 +124,8 @@ int main() {
 
   test_file("tests/diacritics.tosuto");
   test_file("tests/half-width-katakana.tosuto");
+
+  test_vm();
 
   return 0;
 }

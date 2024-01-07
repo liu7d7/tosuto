@@ -81,10 +81,60 @@ namespace tosuto::tree {
     value_ptr val;
     for (auto const& stmt: it->exprs) {
       val = tosuto_unwrap_move(interpret(stmt.get(), sym));
+      if (has_ret) {
+        switch (blk_ctx.top()) {
+          case block_context::global: {
+            return fail("has_ret detected in global context");
+          }
+          case block_context::function: {
+            has_ret = false;
+            goto end;
+          }
+          case block_context::for_loop:
+          case block_context::other: {
+            goto end;
+          }
+        }
+      }
+
+      if (has_next) {
+        switch (blk_ctx.top()) {
+          case block_context::global: {
+            return fail("has_next detected in global context");
+          }
+          case block_context::function: {
+            return fail("has_next detected in function context");
+          }
+          case block_context::for_loop: {
+            has_next = false;
+            goto end;
+          }
+          case block_context::other: {
+            goto end;
+          }
+        }
+      }
+
+      if (has_break) {
+        switch (blk_ctx.top()) {
+          case block_context::global: {
+            return fail("has_break detected in global context");
+          }
+          case block_context::function: {
+            return fail("has_break detected in function context");
+          }
+          case block_context::for_loop:
+          case block_context::other: {
+            goto end;
+          }
+        }
+      }
+
       if (stmt->type == node_type::ret) {
         has_ret = true;
         return std::make_pair(val, new_sym);
       } else if (stmt->type == node_type::next) {
+        has_next = true;
         return std::make_pair(val, new_sym);
       } else if (stmt->type == node_type::brk) {
         has_break = true;
@@ -92,6 +142,7 @@ namespace tosuto::tree {
       }
     }
 
+    end:;
     return std::make_pair(val, new_sym);
   }
 
@@ -304,13 +355,17 @@ namespace tosuto::tree {
     for (auto const& branch: it->cases) {
       value_ptr cond = tosuto_unwrap_move(interpret(branch.first.get(), sym));
       if (cond->is_truthy()) {
+        blk_ctx.push(block_context::other);
         value_ptr res = tosuto_unwrap_move(interpret(branch.second.get(), sym));
+        blk_ctx.pop();
         return res;
       }
     }
 
     if (it->else_case) {
+      blk_ctx.push(block_context::other);
       value_ptr res = tosuto_unwrap_move(interpret(it->else_case.get(), sym));
+      blk_ctx.pop();
       return res;
     }
 
@@ -364,7 +419,13 @@ namespace tosuto::tree {
     bool cont_val = tosuto_unwrap_move(begin->has_next(sym));
 
     while (cont_val) {
-      tosuto_discard(interpret(it->body.get(), new_sym));
+      blk_ctx.push(block_context::for_loop);
+      auto val = tosuto_unwrap_move(interpret(it->body.get(), new_sym));
+      blk_ctx.pop();
+      if (has_ret) {
+        return val;
+      }
+
       if (has_break) {
         reset_state();
         break;
@@ -421,7 +482,9 @@ namespace tosuto::tree {
 
   std::expected<symbol_table, std::string>
   interpreter::global(node* nod, symbol_table& sym) {
+    blk_ctx.push(block_context::global);
     auto thing = tosuto_unwrap_move(block_with_symbols(nod, sym));
+    blk_ctx.pop();
     return *thing.second.par;
   }
 }

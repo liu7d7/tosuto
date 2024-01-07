@@ -1,69 +1,48 @@
 block: [
-  decorated: {
-    target: fn_def_node: {
-      name: ﾒｲﾝ,
-      args: [argv],
-      body: block: [
-        var_def_node: {
-          name: ﾊﾟﾝ,
-          value: string_node: "bread",
-        },
-        call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: ﾄｰｽﾄ,
-          },
-          is_member: 1,
-          args: [
-            field_get_node: {
-              target: nil,
-              field: ﾊﾟﾝ,
-            }
-          ],
-        },
-        call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: log,
-          },
-          is_member: 1,
-          args: [
-            field_get_node: {
-              target: nil,
-              field: ﾊﾟﾝ,
-            }
-          ],
-        },
-      ]
-    }
-    decos: [      deco: {
-        id: entrypoint
-        fields: [],
-      }
-],
+  var_def_node: {
+    name: ﾊﾟﾝ,
+    value: string_node: "bread",
   },
   var_def_node: {
     name: ﾄｰｽﾄ,
-    value: object_node: {
-      ﾊﾟﾝ: string_node: "toast"
-      (): fn_def_node: {
-        name: ,
-        args: [ｼﾞﾌﾞﾝ*, ﾊﾟﾝ*],
-        body: bin_op_node: {
-          op: assign,
-          lhs: field_get_node: {
-            target: nil,
-            field: ﾊﾟﾝ,
-          }
-          rhs: field_get_node: {
-            target: field_get_node: {
-              target: nil,
-              field: ｼﾞﾌﾞﾝ,
-            },
-            field: ﾊﾟﾝ,
-          }
+    value: string_node: "toast",
+  },
+  if_stmt_node: {
+    cases: [
+      case{
+        cond: field_get_node: {
+          target: nil,
+          field: ﾊﾟﾝ,
         }
+        body: block: [
+          var_def_node: {
+            name: ｺﾝﾆﾁﾊ,
+            value: string_node: "hello!",
+          },
+          bin_op_node: {
+            op: assign,
+            lhs: field_get_node: {
+              target: nil,
+              field: ﾄｰｽﾄ,
+            }
+            rhs: field_get_node: {
+              target: nil,
+              field: ｺﾝﾆﾁﾊ,
+            }
+          },
+        ]
       }
-    },
+    ]
+  },
+  bin_op_node: {
+    op: assign,
+    lhs: field_get_node: {
+      target: nil,
+      field: ﾊﾟﾝ,
+    }
+    rhs: field_get_node: {
+      target: nil,
+      field: ﾄｰｽﾄ,
+    }
   },
 ]

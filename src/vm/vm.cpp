@@ -71,6 +71,14 @@ namespace tosuto::vm {
         out << std::left << std::setw(9) << "set_loc" << u16(idx + 1) << '\n';
         return idx + 3;
       }
+      case op_code::jmpf: {
+        out << std::left << std::setw(9) << "jmpf" << u16(idx + 1) << '\n';
+        return idx + 3;
+      }
+      case op_code::jmp: {
+        out << std::left << std::setw(9) << "jmp" << u16(idx + 1) << '\n';
+        return idx + 3;
+      }
       default: {
         out << std::left << std::setw(9) << "uh oh!\n";
         return std::numeric_limits<size_t>::max();
@@ -90,9 +98,11 @@ namespace tosuto::vm {
   } while(false)
 
     for (;;) {
-      ch.disasm_instr(out, ip);
       if (!stack.empty())
         out << stack << '\n';
+      else out << "[ ]\n";
+      ch.disasm_instr(out, ip);
+      out << '\n';
       switch (op()) {
         case op_code::ret: {
           out << pop() << '\n';
@@ -210,6 +220,18 @@ namespace tosuto::vm {
           auto slot = ch.u16(ip);
           ip += 2;
           stack[slot] = peek();
+          break;
+        }
+        case op_code::jmpf: {
+          u16 off = ch.u16(ip);
+          ip += 2;
+          if (!peek().is_truthy()) ip += off;
+          break;
+        }
+        case op_code::jmp: {
+          u16 off = ch.u16(ip);
+          ip += 2;
+          ip += off;
           break;
         }
       }

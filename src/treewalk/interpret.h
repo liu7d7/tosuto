@@ -49,6 +49,15 @@ namespace tosuto::tree {
       has_ret = false, has_next = false, has_break = false;
     }
 
+    enum class block_context {
+      global,
+      function,
+      for_loop,
+      other
+    };
+
+    std::stack<block_context> blk_ctx;
+
     static std::unexpected<std::string>
     fail(node* nod, std::source_location loc = std::source_location::current());
 

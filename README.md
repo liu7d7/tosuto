@@ -1,4 +1,4 @@
-## ﾄｰｽﾄ (Tōsuto)
+## トースト (Tōsuto)
 
 Tōsuto is a scripting language designed to be easy to write and extend, as well
 as easily interact with C++.
@@ -31,3 +31,4 @@ takes two arguments: an implicitly passed ``my``, as well as ``bread``. Both are
 passed by reference, so when we set the argument ``bread`` to ``my.bread``, the
 outer variable ``bread`` is set to ``"toast"``.
 
+### Syntax

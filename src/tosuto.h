@@ -21,6 +21,18 @@
 #define tosuto_discard(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
 #define tosuto_dyn_cast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
 
+#ifdef NDEBUG
+#define tosuto_unwrap_fast(exp) (*exp)
+#define tosuto_unwrap_move_fast(exp) std::move(*exp)
+#define tosuto_discard_fast(exp) void(exp)
+#define tosuto_dyn_cast_fast(type, exp) dynamic_cast<type>(exp)
+#else
+#define tosuto_unwrap_fast(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_unwrap_move_fast(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_discard_fast(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define tosuto_dyn_cast_fast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
+#endif
+
 template<typename V>
 struct temp_storage {
   static V held;
@@ -178,11 +190,27 @@ namespace tosuto {
     std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> convertor;
     return convertor.from_bytes(source);
   }
+
+  template<typename T>
+  struct dummy_expected {
+    T self;
+    explicit dummy_expected(T&& thing) : self(std::move(thing)) {}
+    inline T& operator *() {
+      return self;
+    }
+  };
+
+  template<>
+  struct dummy_expected<void> {
+    inline void operator *() {
+    }
+  };
 }
 
 template<>
 struct std::hash<tosuto::interned_string> {
+  static constexpr auto hasher = std::hash<size_t>();
   size_t operator()(tosuto::interned_string const& str) const {
-    return tosuto::interned_string::backing_array[str.index].second;
+    return hasher(str.index);
   }
 };

@@ -1,48 +1,171 @@
 block: [
-  var_def_node: {
-    name: ﾊﾟﾝ,
-    value: string_node: "bread",
-  },
-  var_def_node: {
-    name: ﾄｰｽﾄ,
-    value: string_node: "toast",
-  },
-  if_stmt_node: {
-    cases: [
-      case{
-        cond: field_get_node: {
-          target: nil,
-          field: ﾊﾟﾝ,
+  fn_def_node: {
+    name: ﾌｨﾎﾞﾅｰﾁ,
+    args: [ﾜ],
+    body: bin_op_node: {
+      op: or,
+      lhs: bin_op_node: {
+        op: and,
+        lhs: bin_op_node: {
+          op: less_than,
+          lhs: field_get_node: {
+            target: nil,
+            field: ﾜ,
+          }
+          rhs: number_node: 2.000000
         }
-        body: block: [
-          var_def_node: {
-            name: ｺﾝﾆﾁﾊ,
-            value: string_node: "hello!",
-          },
-          bin_op_node: {
-            op: assign,
-            lhs: field_get_node: {
-              target: nil,
-              field: ﾄｰｽﾄ,
-            }
-            rhs: field_get_node: {
-              target: nil,
-              field: ｺﾝﾆﾁﾊ,
-            }
-          },
-        ]
+        rhs: field_get_node: {
+          target: nil,
+          field: ﾜ,
+        }
       }
-    ]
+      rhs: bin_op_node: {
+        op: add,
+        lhs: call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: ﾌｨﾎﾞﾅｰﾁ,
+          },
+          is_member: 0,
+          args: [
+            bin_op_node: {
+              op: sub,
+              lhs: field_get_node: {
+                target: nil,
+                field: ﾜ,
+              }
+              rhs: number_node: 2.000000
+            }
+          ],
+        }
+        rhs: call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: ﾌｨﾎﾞﾅｰﾁ,
+          },
+          is_member: 0,
+          args: [
+            bin_op_node: {
+              op: sub,
+              lhs: field_get_node: {
+                target: nil,
+                field: ﾜ,
+              }
+              rhs: number_node: 1.000000
+            }
+          ],
+        }
+      }
+    }
   },
-  bin_op_node: {
-    op: assign,
-    lhs: field_get_node: {
+  var_def_node: {
+    name: ｷｰﾎﾞｰﾄﾞ,
+    value: object_node: {
+      a: number_node: 0.000000
+      b: number_node: 1.000000
+      c: number_node: 2.000000
+      d: fn_def_node: {
+        name: ,
+        args: [my, a],
+        body: bin_op_node: {
+          op: add,
+          lhs: field_get_node: {
+            target: field_get_node: {
+              target: nil,
+              field: my,
+            },
+            field: b,
+          }
+          rhs: field_get_node: {
+            target: nil,
+            field: a,
+          }
+        }
+      }
+    },
+  },
+  call_node: {
+    callee: field_get_node: {
       target: nil,
-      field: ﾊﾟﾝ,
-    }
-    rhs: field_get_node: {
+      field: log,
+    },
+    is_member: 0,
+    args: [
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: ｷｰﾎﾞｰﾄﾞ,
+        },
+        field: d,
+        args: [
+          number_node: 3.000000
+        ],
+      }
+    ],
+  },
+  var_def_node: {
+    name: ｽﾀﾄ,
+    value: call_node: {
+      callee: field_get_node: {
+        target: nil,
+        field: time,
+      },
+      is_member: 0,
+      args: [
+
+      ],
+    },
+  },
+  call_node: {
+    callee: field_get_node: {
       target: nil,
-      field: ﾄｰｽﾄ,
-    }
+      field: log,
+    },
+    is_member: 0,
+    args: [
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: ﾌｨﾎﾞﾅｰﾁ,
+        },
+        is_member: 0,
+        args: [
+          number_node: 16.000000
+        ],
+      }
+    ],
+  },
+  var_def_node: {
+    name: ｴﾝﾄﾞ,
+    value: call_node: {
+      callee: field_get_node: {
+        target: nil,
+        field: time,
+      },
+      is_member: 0,
+      args: [
+
+      ],
+    },
+  },
+  call_node: {
+    callee: field_get_node: {
+      target: nil,
+      field: log,
+    },
+    is_member: 0,
+    args: [
+      bin_op_node: {
+        op: sub,
+        lhs: field_get_node: {
+          target: nil,
+          field: ｴﾝﾄﾞ,
+        }
+        rhs: field_get_node: {
+          target: nil,
+          field: ｽﾀﾄ,
+        }
+      }
+    ],
   },
 ]

@@ -106,13 +106,34 @@ void test_vm() {
   if (!ast.has_value()) throw std::runtime_error(ast.error());
   std::ofstream("out.txt") << (*ast)->pretty(0);
 
-  auto compile = tosuto::vm::compiler{};
+  auto compile = tosuto::vm::compiler{tosuto::vm::value::fn::type::script};
   auto res = compile.global(ast->get());
   if (!res.has_value()) throw std::runtime_error(res.error());
-  compile.ch.disasm(std::cout);
+  auto& fn = res.value();
+  fn.ch->disasm(std::cout);
   std::cout << "\nvm: \n";
 
-  auto vm = tosuto::vm::vm{compile.ch};
+  auto vm = tosuto::vm::vm{fn};
+  using nt_ret = std::expected<tosuto::vm::value, std::string>;
+  vm.def_native(
+    "log",
+    1,
+    [](std::span<tosuto::vm::value> args) {
+      std::cout << args[0] << '\n';
+      return nt_ret{tosuto::vm::value::nil{}};
+    });
+
+  vm.def_native(
+    "time",
+    0,
+    [](std::span<tosuto::vm::value> args) {
+      using namespace std::chrono;
+      size_t ms = duration_cast< milliseconds >(
+        system_clock::now().time_since_epoch()
+      ).count();
+      return nt_ret{tosuto::vm::value{double(ms)}};
+    });
+
   auto interp_res = vm.run(std::cout);
   if (!interp_res.has_value()) throw std::runtime_error(interp_res.error());
 }
@@ -121,9 +142,6 @@ int main() {
 #ifdef WIN32
   system("chcp 65001>nul");
 #endif
-
-  test_file("tests/diacritics.tosuto");
-  test_file("tests/half-width-katakana.tosuto");
 
   test_vm();
 

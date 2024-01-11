@@ -14,10 +14,17 @@ namespace tosuto::vm {
   };
 
   struct compiler {
-    chunk ch;
+    value::fn fn;
+    value::fn::type fn_type;
     constexpr static u16 max_locals = std::numeric_limits<u16>::max();
     std::vector<local> locals;
     u8 depth{};
+
+    explicit compiler(value::fn::type type);
+
+    [[nodiscard]] inline chunk& cur_ch() /* mutating */ {
+      return *fn.ch;
+    }
 
     std::expected<void, std::string> number(node* n);
 
@@ -50,6 +57,26 @@ namespace tosuto::vm {
 
     std::expected<void, std::string> patch_jump(size_t offset);
 
-    std::expected<void, std::string> global(node* n);
+    std::expected<value::fn, std::string> global(node* n);
+
+    std::expected<void, std::string> fn_def(node* n);
+
+    std::expected<void, std::string> function(value::fn::type type, node* n);
+
+    void pop_for_exp_stmt(node* exp);
+
+    std::expected<void, std::string> call(node* n);
+
+    std::expected<void, std::string> basic_block(node* n, bool pop_last);
+
+    std::expected<void, std::string> exp_or_block_no_pop(node* n);
+
+    std::expected<void, std::string> ret(node* n);
+
+    std::expected<void, std::string> object(node* n);
+
+    std::expected<void, std::string> anon_fn_def(node* n);
+
+    std::expected<void, std::string> member_call(node* n);
   };
 }

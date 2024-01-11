@@ -33,6 +33,7 @@ namespace tosuto {
       {U';',  tok_type::semicolon},
       {U'\\', tok_type::backslash},
       {U'@',  tok_type::at},
+      {U'?',  tok_type::question},
     };
 
   lexer::lexer(std::string const& path) :

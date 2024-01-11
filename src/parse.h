@@ -27,7 +27,8 @@ namespace tosuto {
     anon_fn_def,
     deco,
     decorated,
-    kw_literal
+    kw_literal,
+    member_call
   };
 
   static std::string to_string(node_type type) {
@@ -51,7 +52,8 @@ namespace tosuto {
       "anon_fn_def",
       "deco",
       "decorated",
-      "kw_literal"
+      "kw_literal",
+      "member_call",
     };
 
     return node_type_to_string[std::to_underlying(type)];
@@ -107,6 +109,20 @@ namespace tosuto {
 
     call_node(std::unique_ptr<node> callee,
               std::vector<std::unique_ptr<node>> args, bool is_member,
+              pos begin,
+              pos end);
+
+    [[nodiscard]] std::string pretty(int indent) const override;
+  };
+
+  struct member_call_node : public node {
+    std::unique_ptr<node> callee;
+    std::string field;
+    std::vector<std::unique_ptr<node>> args;
+
+    member_call_node(std::unique_ptr<node> callee,
+              std::string field,
+              std::vector<std::unique_ptr<node>> args,
               pos begin,
               pos end);
 
@@ -312,8 +328,6 @@ namespace tosuto {
     std::expected<std::unique_ptr<node>, std::string> post_unary();
 
     std::expected<std::unique_ptr<node>, std::string> call();
-
-    std::expected<std::unique_ptr<node>, std::string> field_get();
 
     std::expected<std::unique_ptr<node>, std::string> atom();
 

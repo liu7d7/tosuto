@@ -85,7 +85,7 @@ namespace tosuto {
   std::expected<std::unique_ptr<node>, std::string> parser::statement() {
     auto decor = tosuto_unwrap_move(decos());
     if (tok.type == tok_type::id &&
-        (next.type == tok_type::colon || next.type == tok_type::l_curly)) {
+        (next.type == tok_type::colon || next.type == tok_type::l_curly || next.type == tok_type::r_arrow)) {
       if (decor.empty()) {
         return function();
       } else {
@@ -330,51 +330,51 @@ namespace tosuto {
 
   std::expected<std::unique_ptr<node>, std::string> parser::call() {
     pos begin = tok.begin;
-    std::unique_ptr<node> body = tosuto_unwrap_move(field_get());
-    while (tok.type == tok_type::l_paren) {
-      advance();
-      std::vector<std::unique_ptr<node>> args;
-      while (tok.type != tok_type::r_paren) {
-        auto exp = tosuto_unwrap_move(expr());
-        args.push_back(std::move(exp));
-        if (tok.type == tok_type::comma) {
-          advance();
-        }
-      }
-
-      advance();
-      return std::make_unique<call_node>(
-        std::move(body), std::move(args), false, begin, args.empty() ? body->end : args.back()->end);
-    }
-
-    return body;
-  }
-
-  std::expected<std::unique_ptr<node>, std::string> parser::field_get() {
-    pos begin = tok.begin;
     std::unique_ptr<node> body = tosuto_unwrap_move(atom());
-    while (tok.type == tok_type::dot) {
+    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot || tok.type == tok_type::colon) {
+      auto type = tok.type;
       advance();
-      if (tok.type == tok_type::l_paren) {
-        advance();
-        std::vector<std::unique_ptr<node>> args;
-        while (tok.type != tok_type::r_paren) {
-          auto exp = tosuto_unwrap_move(expr());
-          args.push_back(std::move(exp));
-          if (tok.type == tok_type::comma) {
-            advance();
+      switch (type) {
+        case tok_type::l_paren: {
+          std::vector<std::unique_ptr<node>> args;
+          while (tok.type != tok_type::r_paren) {
+            auto exp = tosuto_unwrap_move(expr());
+            args.push_back(std::move(exp));
+            if (tok.type == tok_type::comma) {
+              advance();
+            }
           }
+
+          advance();
+          body = std::make_unique<call_node>(
+            std::move(body), std::move(args), false, begin, args.empty() ? body->end : args.back()->end);
+          break;
         }
+        case tok_type::dot: {
+          token id = tosuto_unwrap(expect(tok_type::id));
 
-        advance();
+          body = std::make_unique<field_get_node>(std::move(body), id.lexeme, begin, id.end);
+          break;
+        }
+        case tok_type::colon: {
+          auto field = tosuto_unwrap(expect(tok_type::id));
+          tosuto_discard(expect(tok_type::l_paren));
+          std::vector<std::unique_ptr<node>> args;
+          while (tok.type != tok_type::r_paren) {
+            auto exp = tosuto_unwrap_move(expr());
+            args.push_back(std::move(exp));
+            if (tok.type == tok_type::comma) {
+              advance();
+            }
+          }
 
-        body = std::make_unique<call_node>(std::move(body), std::move(args), true, begin, tok.begin);
-        continue;
+          advance();
+          body = std::make_unique<member_call_node>(
+            std::move(body), field.lexeme, std::move(args), begin, args.empty() ? body->end : args.back()->end);
+          break;
+        }
+        default: std::unreachable();
       }
-
-      token id = tosuto_unwrap(expect(tok_type::id));
-
-      body = std::make_unique<field_get_node>(std::move(body), id.lexeme, begin, id.end);
     }
 
     return body;
@@ -487,6 +487,8 @@ namespace tosuto {
 
   std::expected<std::unique_ptr<node>, std::string> parser::function() {
     using namespace std::string_literals;
+    state just_in_case = save_state();
+
     pos begin = tok.begin;
     std::string id =
       tok.type == tok_type::id ? expect(tok_type::id)->lexeme : ""s;
@@ -503,6 +505,11 @@ namespace tosuto {
         }
         args.push_back(arg);
       }
+
+      if (tok.type == tok_type::l_paren) {
+        set_state(just_in_case);
+        return std::unexpected{"call!"};
+      }
     }
 
     if (tok.type == tok_type::r_arrow) {
@@ -517,7 +524,7 @@ namespace tosuto {
   }
 
   void parser::set_state(parser::state const& s) {
-    idx = s.idx, tok = s.tok, next = s.tok;
+    idx = s.idx, tok = s.tok, next = s.next;
   }
 
   parser::state parser::save_state() {
@@ -905,5 +912,39 @@ namespace tosuto {
 
   std::string kw_literal_node::pretty(int indent) const {
     return "kw_literal_node: " + to_string(lit);
+  }
+
+  member_call_node::member_call_node(std::unique_ptr<node> callee,
+                                     std::string field,
+                                     std::vector<std::unique_ptr<node>> args,
+                                     pos begin, pos end) :
+                                     callee(std::move(callee)),
+                                     field(std::move(field)),
+                                     args(std::move(args)),
+                                     node(node_type::member_call, begin, end) {
+
+  }
+
+  std::string member_call_node::pretty(int indent) const {
+    std::string ind = std::string((indent + 1) * 2, ' ');
+    std::string arg_str;
+    for (auto const& it: args) {
+      arg_str += ind;
+      arg_str += "  ";
+      arg_str += it->pretty(indent + 2);
+      arg_str += ",\n";
+    }
+
+    if (!arg_str.empty()) {
+      arg_str = arg_str.substr(0, arg_str.length() - 2);
+    }
+
+    return (
+      std::stringstream()
+        << "call_node: {\n"
+        << ind << "callee: " << callee->pretty(indent + 1) << ",\n"
+        << ind << "field: " << field << ",\n"
+        << ind << "args: [\n" << arg_str << '\n' << ind << ']' << ",\n"
+        << std::string(indent * 2, ' ') << '}').str();
   }
 }

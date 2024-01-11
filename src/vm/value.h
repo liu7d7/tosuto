@@ -5,33 +5,51 @@
 #include <numeric>
 #include <variant>
 #include <cmath>
+#include <span>
 #include "../tosuto.h"
 
 namespace tosuto::vm {
+  struct chunk;
+
   struct value {
     using num = double;
     constexpr static num epsilon = std::numeric_limits<num>::epsilon();
 
-    using offset = size_t;
     using str = interned_string;
     using object = std::shared_ptr<std::unordered_map<str, value>>;
     using ref = std::shared_ptr<value>;
+    using native_fn = std::pair<std::expected<value, std::string>(*)(std::span<value> args), u8>;
     struct nil {
+    };
+
+    struct fn {
+      u8 arity;
+      std::shared_ptr<chunk> ch;
+      std::string name;
+      std::vector<bool> ref;
+
+      fn();
+
+      enum class type {
+        script,
+        fn
+      };
     };
 
     using value_type = std::variant<
       num,
-      offset,
       bool,
       object,
       ref,
       nil,
-      str>;
+      str,
+      fn,
+      native_fn>;
 
     value_type val;
 
     template<typename T>
-    inline bool is() {
+    [[nodiscard]] inline bool is() const {
       return std::holds_alternative<T>(val);
     }
 

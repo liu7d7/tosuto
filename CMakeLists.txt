@@ -25,3 +25,5 @@ add_executable(tosuto main.cpp
         src/vm/value.h
         src/vm/value.cpp
 )
+
+target_compile_options(tosuto PUBLIC "$<$<CONFIG:Release>:-Ofast>")

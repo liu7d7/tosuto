@@ -331,7 +331,7 @@ namespace tosuto {
   std::expected<std::unique_ptr<node>, std::string> parser::call() {
     pos begin = tok.begin;
     std::unique_ptr<node> body = tosuto_unwrap_move(atom());
-    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot || tok.type == tok_type::colon) {
+    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot || tok.type == tok_type::colon || tok.type == tok_type::l_square) {
       auto type = tok.type;
       advance();
       switch (type) {
@@ -348,6 +348,13 @@ namespace tosuto {
           advance();
           body = std::make_unique<call_node>(
             std::move(body), std::move(args), false, begin, args.empty() ? body->end : args.back()->end);
+          break;
+        }
+        case tok_type::l_square: {
+          auto index = tosuto_unwrap_move(expr());
+          tosuto_discard(expect(tok_type::r_square));
+          body = std::make_unique<bin_op_node>(
+            std::move(body), std::move(index), tok_type::l_square, begin, index->end);
           break;
         }
         case tok_type::dot: {
@@ -427,6 +434,18 @@ namespace tosuto {
         auto nod = std::make_unique<field_get_node>(nullptr, tok.lexeme, begin, tok.begin);
         advance();
         return nod;
+      }
+      case tok_type::l_square: {
+        advance();
+        std::vector<std::unique_ptr<node>> array;
+        while (tok.type != tok_type::r_square) {
+          auto val = tosuto_unwrap_move(expr());
+          array.emplace_back(std::move(val));
+          consume(tok_type::comma);
+        }
+        advance();
+
+        return std::make_unique<array_node>(std::move(array), begin, tok.begin);
       }
       case tok_type::l_object: {
         advance();
@@ -578,6 +597,18 @@ namespace tosuto {
     std::string ind = std::string((indent + 1) * 2, ' ');
     std::stringstream ss;
     ss << "block: [\n";
+    for (auto const& it: exprs) {
+      ss << ind << it->pretty(indent + 1) << ",\n";
+    }
+
+    ss << std::string(indent * 2, ' ') << ']';
+    return ss.str();
+  }
+
+  std::string array_node::pretty(int indent) const {
+    std::string ind = std::string((indent + 1) * 2, ' ');
+    std::stringstream ss;
+    ss << "array: [\n";
     for (auto const& it: exprs) {
       ss << ind << it->pretty(indent + 1) << ",\n";
     }
@@ -946,5 +977,10 @@ namespace tosuto {
         << ind << "field: " << field << ",\n"
         << ind << "args: [\n" << arg_str << '\n' << ind << ']' << ",\n"
         << std::string(indent * 2, ' ') << '}').str();
+  }
+
+  array_node::array_node(std::vector<std::unique_ptr<node>> exprs, pos begin,
+                         pos end) : exprs(std::move(exprs)), node(node_type::array, begin, end) {
+
   }
 }

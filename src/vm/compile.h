@@ -78,5 +78,7 @@ namespace tosuto::vm {
     std::expected<void, std::string> anon_fn_def(node* n);
 
     std::expected<void, std::string> member_call(node* n);
+
+    std::expected<void, std::string> array(node* n);
   };
 }

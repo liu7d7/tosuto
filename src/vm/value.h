@@ -19,6 +19,7 @@ namespace tosuto::vm {
     using object = std::shared_ptr<std::unordered_map<str, value>>;
     using ref = std::shared_ptr<value>;
     using native_fn = std::pair<std::expected<value, std::string>(*)(std::span<value> args), u8>;
+    using array = std::shared_ptr<std::vector<value>>;
     struct nil {
     };
 
@@ -44,7 +45,8 @@ namespace tosuto::vm {
       nil,
       str,
       fn,
-      native_fn>;
+      native_fn,
+      array>;
 
     value_type val;
 

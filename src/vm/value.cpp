@@ -17,7 +17,7 @@ namespace tosuto::vm {
           s += ", ";
         }
 
-        if (s.back() != '}') s = s.substr(0, s.length() - 2);
+        if (s.back() != '{') s = s.substr(0, s.length() - 2);
         return s + '}';
       }
       case 3: {
@@ -27,6 +27,17 @@ namespace tosuto::vm {
       case 5: return get<str>();
       case 6: return "<fn " + get<fn>().name + ">";
       case 7: return "<native fn>";
+      case 8: {
+        std::string s = "[";
+        auto& obj = get<array>();
+        for (auto const& v : *obj) {
+          s += v.to_string();
+          s += ", ";
+        }
+
+        if (s.back() != '[') s = s.substr(0, s.length() - 2);
+        return s + ']';
+      }
       default: std::unreachable();
     }
   }

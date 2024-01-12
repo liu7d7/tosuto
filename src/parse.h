@@ -28,7 +28,9 @@ namespace tosuto {
     deco,
     decorated,
     kw_literal,
-    member_call
+    member_call,
+    array_idx,
+    array
   };
 
   static std::string to_string(node_type type) {
@@ -54,6 +56,8 @@ namespace tosuto {
       "decorated",
       "kw_literal",
       "member_call",
+      "array_idx",
+      "array",
     };
 
     return node_type_to_string[std::to_underlying(type)];
@@ -98,6 +102,14 @@ namespace tosuto {
     std::vector<std::unique_ptr<node>> exprs;
 
     block_node(std::vector<std::unique_ptr<node>> exprs, pos begin, pos end);
+
+    [[nodiscard]] std::string pretty(int indent) const override;
+  };
+
+  struct array_node : public node {
+    std::vector<std::unique_ptr<node>> exprs;
+
+    array_node(std::vector<std::unique_ptr<node>> exprs, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };

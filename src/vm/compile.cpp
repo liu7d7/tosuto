@@ -19,6 +19,7 @@ namespace tosuto::vm {
     {node_type::object, &compiler::object},
     {node_type::anon_fn_def, &compiler::anon_fn_def},
     {node_type::member_call, &compiler::member_call},
+    {node_type::array, &compiler::array},
   };
 
 #define TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(op) case tok_type::op: cur_ch().add(op_code::op); break;
@@ -26,19 +27,42 @@ namespace tosuto::vm {
   std::expected<void, std::string> compiler::bin_op(tosuto::node* n) {
     auto it = tosuto_dyn_cast(bin_op_node*, n);
     if (it->op == tok_type::assign) {
+      if (it->lhs->type == node_type::bin_op) {
+        auto lhs = tosuto_dyn_cast(bin_op_node*, it->lhs.get());
+        if (lhs->op == tok_type::l_square) {
+          // a[b] = c
+          tosuto_discard(compile(lhs->lhs.get()));
+          tosuto_discard(compile(lhs->rhs.get()));
+          tosuto_discard(compile(it->rhs.get()));
+          cur_ch().add(op_code::set_idx);
+
+          return {};
+        }
+      }
+
       if (it->lhs->type != node_type::field_get) {
         return std::unexpected{"Expected field get on lhs of assign!"};
       }
 
       auto lhs = tosuto_dyn_cast(field_get_node*, it->lhs.get());
       if (lhs->target) {
-        return std::unexpected{"Only supports non-member assignment rn!"};
+        tosuto_discard(compile(lhs->target.get()));
+        tosuto_discard(compile(it->rhs.get()));
+        cur_ch().add(op_code::set_prop);
+        auto field_name = lhs->field;
+        cur_ch().add(cur_ch().add_lit(value{value::str{field_name}})); 
+
+        return {};
       }
 
       tosuto_discard(compile(it->rhs.get()));
-      cur_ch().add(op_code::set_global);
-      auto lit = cur_ch().add_lit(value{value::str{lhs->field}});
-      cur_ch().add(lit);
+      auto try_get_local = resolve_local(lhs->field);
+      std::pair<op_code, u16> op =
+        try_get_local.has_value() ?
+          std::make_pair(op_code::set_local, *try_get_local)
+        : std::make_pair(op_code::set_global, cur_ch().add_lit(value{value::str{lhs->field}}));
+      cur_ch().add(op.first);
+      cur_ch().add(op.second);
 
       return {};
     }
@@ -81,6 +105,7 @@ namespace tosuto::vm {
       case tok_type::less_than: cur_ch().add(op_code::lt); break;
       case tok_type::greater_than_equal: cur_ch().add(op_code::lt); cur_ch().add(op_code::inv); break;
       case tok_type::less_than_equal: cur_ch().add(op_code::gt); cur_ch().add(op_code::inv); break;
+      case tok_type::l_square: cur_ch().add(op_code::get_idx); break;
       default: return std::unexpected{"Unknown infix operator at " + n->pretty(0)};
     }
 
@@ -118,6 +143,23 @@ namespace tosuto::vm {
 
   std::expected<void, std::string> compiler::anon_fn_def(node* n) {
     tosuto_discard(function(value::fn::type::fn, n));
+
+    return {};
+  }
+
+  std::expected<void, std::string> compiler::array(node* n) {
+    auto it = tosuto_dyn_cast(array_node*, n);
+
+    if (it->exprs.size() > max_of<u16>) {
+      return std::unexpected{"Too many values in array!"};
+    }
+
+    for (auto const& val : it->exprs) {
+      tosuto_discard(compile(val.get()));
+    }
+
+    cur_ch().add(op_code::array);
+    cur_ch().add(u16(it->exprs.size()));
 
     return {};
   }

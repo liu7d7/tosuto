@@ -50,6 +50,8 @@ namespace tosuto::vm {
       TOSUTO_DISASM_SIMPLE_INSTR(lt);
       TOSUTO_DISASM_SIMPLE_INSTR(gt);
       TOSUTO_DISASM_SIMPLE_INSTR(inv);
+      TOSUTO_DISASM_SIMPLE_INSTR(get_idx);
+      TOSUTO_DISASM_SIMPLE_INSTR(set_idx);
       TOSUTO_DISASM_SIMPLE_INSTR_2(key_true, true);
       TOSUTO_DISASM_SIMPLE_INSTR_2(key_false, false);
       TOSUTO_DISASM_SIMPLE_INSTR_2(key_nil, nil);
@@ -80,12 +82,20 @@ namespace tosuto::vm {
         out << std::left << std::setw(9) << "set_loc" << rd_u16(idx + 1) << '\n';
         return idx + 3;
       }
+      case op_code::array: {
+        out << std::left << std::setw(9) << "array" << rd_u16(idx + 1) << '\n';
+        return idx + 3;
+      }
       case op_code::def_prop: {
         out << std::left << std::setw(9) << "def_prop" << literal(idx + 1) << '\n';
         return idx + 3;
       }
       case op_code::get_prop: {
         out << std::left << std::setw(9) << "get_prop" << literal(idx + 1) << '\n';
+        return idx + 3;
+      }
+      case op_code::set_prop: {
+        out << std::left << std::setw(9) << "set_prop" << literal(idx + 1) << '\n';
         return idx + 3;
       }
       case op_code::jmpf: {
@@ -305,6 +315,51 @@ namespace tosuto::vm {
           }
 
           tosuto_discard_fast(push(value{it->second}));
+          break;
+        }
+        case op_code::set_prop: {
+          value::str name = rd_lit().get<value::str>();
+          value val = tosuto_unwrap_move_fast(pop());
+          value obj = tosuto_unwrap_move_fast(pop());
+          auto& obj_fields = obj.get<value::object>();
+
+          obj_fields->emplace(name, val);
+          tosuto_discard_fast(push(std::move(val)));
+          break;
+        }
+        case op_code::get_idx: {
+          value index = tosuto_unwrap_move_fast(pop());
+          value array = tosuto_unwrap_move_fast(pop());
+
+          if (!index.is<value::num>() || !array.is<value::array>()) {
+            return std::unexpected{"Can't perform " + array.to_string() + "[" + index.to_string() + "]"};
+          }
+
+          tosuto_discard_fast(push(value{array.get<value::array>()->at(
+            size_t(floor(index.get<value::num>())))}));
+          break;
+        }
+        case op_code::set_idx: {
+          value val = tosuto_unwrap_move_fast(pop());
+          value index = tosuto_unwrap_move_fast(pop());
+          value array = tosuto_unwrap_move_fast(pop());
+
+          if (!index.is<value::num>() || !array.is<value::array>()) {
+            return std::unexpected{"Can't perform " + array.to_string() + "[" + index.to_string() + "]"};
+          }
+
+          array.get<value::array>()->at(size_t(floor(index.get<value::num>()))) = val;
+          tosuto_discard_fast(push(std::move(val)));
+          break;
+        }
+        case op_code::array: {
+          u16 size = rd_u16();
+
+          auto val = value{std::make_shared<value::array::element_type>(stack.end() - size, stack.end())};
+
+          stack.resize(stack.size() - size);
+          tosuto_discard_fast(push(std::move(val)));
+
           break;
         }
       }

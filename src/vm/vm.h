@@ -27,7 +27,9 @@ namespace tosuto::vm {
     jmp,
     jmpf_pop,
     call,
-    def_prop, get_prop
+    def_prop, get_prop, set_prop,
+    get_idx, set_idx,
+    array,
   };
 
   struct chunk {

@@ -113,25 +113,34 @@ void test_vm() {
   fn.ch->disasm(std::cout);
   std::cout << "\nvm: \n";
 
-  auto vm = tosuto::vm::vm{fn};
-  using nt_ret = std::expected<tosuto::vm::value, std::string>;
+  using namespace tosuto;
+
+  auto vm = vm::vm{fn};
+  using nt_ret = std::expected<vm::value, std::string>;
   vm.def_native(
     "log",
     1,
-    [](std::span<tosuto::vm::value> args) {
+    [](std::span<vm::value> args) {
       std::cout << args[0] << '\n';
-      return nt_ret{tosuto::vm::value::nil{}};
+      return nt_ret{vm::value::nil{}};
     });
 
   vm.def_native(
     "time",
     0,
-    [](std::span<tosuto::vm::value> args) {
+    [](std::span<vm::value> args) {
       using namespace std::chrono;
       size_t ms = duration_cast< milliseconds >(
         system_clock::now().time_since_epoch()
       ).count();
-      return nt_ret{tosuto::vm::value{double(ms)}};
+      return nt_ret{vm::value{double(ms)}};
+    });
+
+  vm.def_native(
+    "to_str",
+    1,
+    [](std::span<vm::value> args) {
+      return nt_ret{vm::value{vm::value::str{args[0].to_string()}}};
     });
 
   auto interp_res = vm.run(std::cout);

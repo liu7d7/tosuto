@@ -155,17 +155,6 @@ namespace tosuto {
     }
   };
 
-  template<typename T, typename S, typename Deleter>
-  std::unique_ptr<T, Deleter>
-  dynamic_uptr_cast(std::unique_ptr<S, Deleter>&& p) noexcept {
-    auto converted = std::unique_ptr<T, Deleter>{dynamic_cast<T*>(p.get())};
-    if (converted) {
-      std::swap(converted.get_deleter(), p.get_deleter());
-      p.release();            // no longer owns the pointer
-    }
-    return converted;
-  }
-
   template<typename T>
   std::string to_utf8(
     const std::basic_string<T, std::char_traits<T>, std::allocator<T>>& source) {

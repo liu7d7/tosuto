@@ -77,50 +77,51 @@ namespace tosuto {
   struct fn_def_node : public node {
     std::string name;
     std::vector<std::pair<std::string, bool>> args;
-    std::unique_ptr<node> body;
+    std::shared_ptr<node> body;
 
     fn_def_node(
       std::string name,
       std::vector<std::pair<std::string, bool>> args,
-      std::unique_ptr<node> body, pos begin, pos end);
+      std::shared_ptr<node> body, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct anon_fn_def_node : public node {
     std::vector<std::pair<std::string, bool>> args;
-    std::unique_ptr<node> body;
+    std::shared_ptr<node> body;
 
     anon_fn_def_node(
       std::vector<std::pair<std::string, bool>> args,
-      std::unique_ptr<node> body, pos begin, pos end);;
+      std::shared_ptr<node> body, pos begin, pos end);;
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct block_node : public node {
-    std::vector<std::unique_ptr<node>> exprs;
+    std::vector<std::shared_ptr<node>> exprs;
 
-    block_node(std::vector<std::unique_ptr<node>> exprs, pos begin, pos end);
+    block_node(std::vector<std::shared_ptr<node>> exprs, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct array_node : public node {
-    std::vector<std::unique_ptr<node>> exprs;
+    std::vector<std::shared_ptr<node>> exprs;
 
-    array_node(std::vector<std::unique_ptr<node>> exprs, pos begin, pos end);
+    array_node(std::vector<std::shared_ptr<node>> exprs, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
+
   };
 
   struct call_node : public node {
-    std::unique_ptr<node> callee;
-    std::vector<std::unique_ptr<node>> args;
+    std::shared_ptr<node> callee;
+    std::vector<std::shared_ptr<node>> args;
     bool is_member;
 
-    call_node(std::unique_ptr<node> callee,
-              std::vector<std::unique_ptr<node>> args, bool is_member,
+    call_node(std::shared_ptr<node> callee,
+              std::vector<std::shared_ptr<node>> args, bool is_member,
               pos begin,
               pos end);
 
@@ -128,13 +129,13 @@ namespace tosuto {
   };
 
   struct member_call_node : public node {
-    std::unique_ptr<node> callee;
+    std::shared_ptr<node> callee;
     std::string field;
-    std::vector<std::unique_ptr<node>> args;
+    std::vector<std::shared_ptr<node>> args;
 
-    member_call_node(std::unique_ptr<node> callee,
+    member_call_node(std::shared_ptr<node> callee,
               std::string field,
-              std::vector<std::unique_ptr<node>> args,
+              std::vector<std::shared_ptr<node>> args,
               pos begin,
               pos end);
 
@@ -142,20 +143,20 @@ namespace tosuto {
   };
 
   struct un_op_node : public node {
-    std::unique_ptr<node> target;
+    std::shared_ptr<node> target;
     tok_type op;
 
-    un_op_node(std::unique_ptr<node> target, tok_type op, pos begin, pos end);
+    un_op_node(std::shared_ptr<node> target, tok_type op, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct bin_op_node : public node {
-    std::unique_ptr<node> lhs;
-    std::unique_ptr<node> rhs;
+    std::shared_ptr<node> lhs;
+    std::shared_ptr<node> rhs;
     tok_type op;
 
-    bin_op_node(std::unique_ptr<node> lhs, std::unique_ptr<node> rhs,
+    bin_op_node(std::shared_ptr<node> lhs, std::shared_ptr<node> rhs,
                 tok_type op, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -170,10 +171,10 @@ namespace tosuto {
   };
 
   struct range_node : public node {
-    std::unique_ptr<node> start;
-    std::unique_ptr<node> finish;
+    std::shared_ptr<node> start;
+    std::shared_ptr<node> finish;
 
-    range_node(std::unique_ptr<node> start, std::unique_ptr<node> finish,
+    range_node(std::shared_ptr<node> start, std::shared_ptr<node> finish,
                pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -188,7 +189,7 @@ namespace tosuto {
   };
 
   struct object_node : public node {
-    std::vector<std::pair<std::string, std::unique_ptr<node>>> fields;
+    std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
 
     object_node(decltype(fields) fields, pos begin, pos end);
 
@@ -204,10 +205,10 @@ namespace tosuto {
   };
 
   struct field_get_node : public node {
-    std::unique_ptr<node> target;
+    std::shared_ptr<node> target;
     std::string field;
 
-    field_get_node(std::unique_ptr<node> target, std::string field, pos begin,
+    field_get_node(std::shared_ptr<node> target, std::string field, pos begin,
                    pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -215,19 +216,19 @@ namespace tosuto {
 
   struct var_def_node : public node {
     std::string name;
-    std::unique_ptr<node> value;
+    std::shared_ptr<node> value;
 
-    var_def_node(std::string name, std::unique_ptr<node> value, pos begin,
+    var_def_node(std::string name, std::shared_ptr<node> value, pos begin,
                  pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct if_node : public node {
-    std::vector<std::pair<std::unique_ptr<node>, std::unique_ptr<node>>> cases;
-    std::unique_ptr<node> else_case;
+    std::vector<std::pair<std::shared_ptr<node>, std::shared_ptr<node>>> cases;
+    std::shared_ptr<node> else_case;
 
-    if_node(decltype(cases) cases, std::unique_ptr<node> else_case, pos begin,
+    if_node(decltype(cases) cases, std::shared_ptr<node> else_case, pos begin,
             pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -235,19 +236,19 @@ namespace tosuto {
 
   struct for_node : public node {
     std::string id;
-    std::unique_ptr<node> iterable;
-    std::unique_ptr<node> body;
+    std::shared_ptr<node> iterable;
+    std::shared_ptr<node> body;
 
-    for_node(std::string id, std::unique_ptr<node> iterable,
-             std::unique_ptr<node> body, pos begin, pos end);
+    for_node(std::string id, std::shared_ptr<node> iterable,
+             std::shared_ptr<node> body, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct ret_node : public node {
-    std::unique_ptr<node> ret_val;
+    std::shared_ptr<node> ret_val;
 
-    ret_node(std::unique_ptr<node> ret_val, pos begin, pos end);
+    ret_node(std::shared_ptr<node> ret_val, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
@@ -266,21 +267,21 @@ namespace tosuto {
 
   struct deco_node : public node {
     std::string id;
-    std::vector<std::pair<std::string, std::unique_ptr<node>>> fields;
+    std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
 
     deco_node(std::string id,
-              std::vector<std::pair<std::string, std::unique_ptr<node>>> nodes,
+              std::vector<std::pair<std::string, std::shared_ptr<node>>> nodes,
               pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct decorated_node : public node {
-    std::vector<std::unique_ptr<node>> decos;
-    std::unique_ptr<node> target;
+    std::vector<std::shared_ptr<node>> decos;
+    std::shared_ptr<node> target;
 
-    decorated_node(std::vector<std::unique_ptr<node>> decos,
-                   std::unique_ptr<node> target,
+    decorated_node(std::vector<std::shared_ptr<node>> decos,
+                   std::shared_ptr<node> target,
                    pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -309,44 +310,44 @@ namespace tosuto {
 
     void consume(tok_type type);
 
-    std::expected<std::unique_ptr<node>, std::string> block();
+    std::expected<std::shared_ptr<node>, std::string> block();
 
-    std::expected<std::unique_ptr<node>, std::string> global();
+    std::expected<std::shared_ptr<node>, std::string> global();
 
-    std::expected<std::unique_ptr<node>, std::string> function();
+    std::expected<std::shared_ptr<node>, std::string> function();
 
-    std::expected<std::unique_ptr<node>, std::string> statement();
+    std::expected<std::shared_ptr<node>, std::string> statement();
 
-    std::expected<std::unique_ptr<node>, std::string> expr();
+    std::expected<std::shared_ptr<node>, std::string> expr();
 
-    std::expected<std::unique_ptr<node>, std::string> define();
+    std::expected<std::shared_ptr<node>, std::string> define();
 
-    std::expected<std::unique_ptr<node>, std::string> assign();
+    std::expected<std::shared_ptr<node>, std::string> assign();
 
-    std::expected<std::unique_ptr<node>, std::string> sym_or();
+    std::expected<std::shared_ptr<node>, std::string> sym_or();
 
-    std::expected<std::unique_ptr<node>, std::string> sym_and();
+    std::expected<std::shared_ptr<node>, std::string> sym_and();
 
-    std::expected<std::unique_ptr<node>, std::string> comp();
+    std::expected<std::shared_ptr<node>, std::string> comp();
 
-    std::expected<std::unique_ptr<node>, std::string> add();
+    std::expected<std::shared_ptr<node>, std::string> add();
 
-    std::expected<std::unique_ptr<node>, std::string> mul();
+    std::expected<std::shared_ptr<node>, std::string> mul();
 
-    std::expected<std::unique_ptr<node>, std::string> range();
+    std::expected<std::shared_ptr<node>, std::string> range();
 
-    std::expected<std::unique_ptr<node>, std::string> pre_unary();
+    std::expected<std::shared_ptr<node>, std::string> pre_unary();
 
-    std::expected<std::unique_ptr<node>, std::string> post_unary();
+    std::expected<std::shared_ptr<node>, std::string> post_unary();
 
-    std::expected<std::unique_ptr<node>, std::string> call();
+    std::expected<std::shared_ptr<node>, std::string> call();
 
-    std::expected<std::unique_ptr<node>, std::string> atom();
+    std::expected<std::shared_ptr<node>, std::string> atom();
 
-    std::expected<std::unique_ptr<node>, std::string> for_loop();
+    std::expected<std::shared_ptr<node>, std::string> for_loop();
 
-    std::expected<std::unique_ptr<node>, std::string> with();
+    std::expected<std::shared_ptr<node>, std::string> with();
 
-    std::expected<std::vector<std::unique_ptr<node>>, std::string> decos();
+    std::expected<std::vector<std::shared_ptr<node>>, std::string> decos();
   };
 }

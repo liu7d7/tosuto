@@ -18,79 +18,79 @@ namespace tosuto {
     next = toks[std::min(toks.size() - 1, idx + 1)];
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::block() {
+  std::expected<std::shared_ptr<node>, std::string> parser::block() {
     pos begin = tok.begin;
     tosuto_discard(expect(tok_type::l_curly));
 
-    std::vector<std::unique_ptr<node>> exprs;
+    std::vector<std::shared_ptr<node>> exprs;
     while (tok.type != tok_type::r_curly) {
       auto exp = statement();
       if (!exp.has_value()) return exp;
-      exprs.push_back(std::move(exp.value()));
+      exprs.push_back(exp.value());
     }
 
     advance();
-    return std::make_unique<block_node>(std::move(exprs), begin, tok.begin);
+    return std::make_shared<block_node>(exprs, begin, tok.begin);
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::global() {
+  std::expected<std::shared_ptr<node>, std::string> parser::global() {
     pos begin = tok.begin;
-    std::vector<std::unique_ptr<node>> exprs;
+    std::vector<std::shared_ptr<node>> exprs;
     while (tok.type != tok_type::eof) {
       auto exp = statement();
       if (!exp.has_value()) return exp;
-      exprs.push_back(std::move(exp.value()));
+      exprs.push_back(exp.value());
     }
 
-    return std::make_unique<block_node>(std::move(exprs), begin, tok.begin);
+    return std::make_shared<block_node>(exprs, begin, tok.begin);
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::for_loop() {
+  std::expected<std::shared_ptr<node>, std::string> parser::for_loop() {
     pos begin = tok.begin;
     tosuto_discard(expect(tok_type::key_for));
     auto id = tosuto_unwrap(expect(tok_type::id));
     tosuto_discard(expect(tok_type::colon));
-    auto iterable = tosuto_unwrap_move(expr());
-    auto body = tosuto_unwrap_move(block());
+    auto iterable = tosuto_unwrap(expr());
+    auto body = tosuto_unwrap(block());
 
-    return std::make_unique<for_node>(id.lexeme, std::move(iterable), std::move(body), begin, body->end);
+    return std::make_shared<for_node>(id.lexeme, iterable, body, begin, body->end);
   }
 
-  std::expected<std::vector<std::unique_ptr<node>>, std::string> parser::decos() {
-    std::vector<std::unique_ptr<node>> decos;
+  std::expected<std::vector<std::shared_ptr<node>>, std::string> parser::decos() {
+    std::vector<std::shared_ptr<node>> decos;
     while (tok.type == tok_type::at) {
       pos begin = tok.begin;
       advance();
       token id = tosuto_unwrap(expect(tok_type::id));
-      std::vector<std::pair<std::string, std::unique_ptr<node>>> fields;
+      std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
       if (tok.type == tok_type::l_paren) {
         advance();
         while (tok.type == tok_type::id) {
           token field_id = tosuto_unwrap(expect(tok_type::id));
           tosuto_discard(expect(tok_type::assign));
-          auto field_val = tosuto_unwrap_move(expr());
+          auto field_val = tosuto_unwrap(expr());
           consume(tok_type::comma);
-          fields.emplace_back(field_id.lexeme, std::move(field_val));
+          fields.emplace_back(field_id.lexeme, field_val);
         }
 
         tosuto_discard(expect(tok_type::r_paren));
       }
 
-      decos.push_back(std::make_unique<deco_node>(id.lexeme, std::move(fields), begin, tok.begin));
+      decos.push_back(std::make_shared<deco_node>(id.lexeme, fields, begin, tok.begin));
     }
 
     return decos;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::statement() {
-    auto decor = tosuto_unwrap_move(decos());
+  std::expected<std::shared_ptr<node>, std::string> parser::statement() {
+    auto decor = tosuto_unwrap(decos());
     if (tok.type == tok_type::id &&
         (next.type == tok_type::colon || next.type == tok_type::l_curly || next.type == tok_type::r_arrow)) {
       if (decor.empty()) {
         return function();
       } else {
-        auto fn = tosuto_unwrap_move(function());
-        return std::make_unique<decorated_node>(std::move(decor), std::move(fn), decor.front()->begin, tok.begin);
+        auto fn = tosuto_unwrap(function());
+        return std::make_shared<decorated_node>(decor, fn, decor.front()->begin, tok.begin);
       }
     }
 
@@ -101,93 +101,104 @@ namespace tosuto {
       case tok_type::key_ret: {
         token cur = tok;
         advance();
-        std::unique_ptr<node> ret_val = nullptr;
+        std::shared_ptr<node> ret_val = nullptr;
         auto exp = expr();
-        if (exp.has_value()) ret_val = std::move(exp.value());
+        if (exp.has_value()) ret_val = exp.value();
 
-        return std::make_unique<ret_node>(std::move(ret_val), cur.begin,
+        return std::make_shared<ret_node>(ret_val, cur.begin,
                             ret_val ? ret_val->end : cur.end);
       }
       case tok_type::key_next: {
         token cur = tok;
         advance();
-        return std::make_unique<next_node>(cur.begin, cur.end);
+        return std::make_shared<next_node>(cur.begin, cur.end);
       }
       case tok_type::key_break: {
         token cur = tok;
         advance();
-        return std::make_unique<break_node>(cur.begin, cur.end);
+        return std::make_shared<break_node>(cur.begin, cur.end);
       }
       default: {
         if (decor.empty()) {
           return expr();
         } else {
-          auto fn = tosuto_unwrap_move(expr());
-          return std::make_unique<decorated_node>(std::move(decor), std::move(fn), decor.front()->begin, tok.begin);
+          auto fn = tosuto_unwrap(expr());
+          return std::make_shared<decorated_node>(decor, fn, decor.front()->begin, tok.begin);
         }
       }
     }
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::expr() {
+  std::expected<std::shared_ptr<node>, std::string> parser::expr() {
     return define();
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::define() {
+  std::expected<std::shared_ptr<node>, std::string> parser::define() {
     if (tok.type != tok_type::id) {
       return assign();
     }
 
     std::string id = tok.lexeme;
-    auto lhs = tosuto_unwrap_move(assign());
+    auto lhs = tosuto_unwrap(assign());
     while (tok.type == tok_type::walrus) {
       advance();
-      auto rhs = tosuto_unwrap_move(assign());
-      lhs = std::make_unique<var_def_node>(id, std::move(rhs), lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(assign());
+      lhs = std::make_shared<var_def_node>(id, rhs, lhs->begin, rhs->end);
     }
 
     return lhs;
   }
 
-  static std::unordered_set<tok_type> assign_ops
+  static std::unordered_map<tok_type, std::optional<tok_type>> assign_ops
     {
-      tok_type::add_assign,
-      tok_type::mul_assign,
-      tok_type::div_assign,
-      tok_type::mod_assign,
-      tok_type::sub_assign,
-      tok_type::assign
+      {tok_type::add_assign, {tok_type::add}},
+      {tok_type::mul_assign, {tok_type::mul}},
+      {tok_type::div_assign, {tok_type::div}},
+      {tok_type::mod_assign, {tok_type::mod}},
+      {tok_type::sub_assign, {tok_type::sub}},
+      {tok_type::assign, std::nullopt}
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::assign() {
-    auto lhs = tosuto_unwrap_move(sym_or());
+  std::expected<std::shared_ptr<node>, std::string> parser::assign() {
+    auto lhs = tosuto_unwrap(sym_or());
     while (assign_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap_move(sym_or());
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(sym_or());
+      auto secondary = assign_ops[type];
+      auto begin = lhs->begin, end = rhs->end;
+      if (secondary.has_value()) {
+        lhs = std::make_shared<bin_op_node>(
+          lhs,
+          std::make_shared<bin_op_node>(lhs, rhs, secondary.value(), begin, end),
+          tok_type::assign,
+          begin, end);
+        continue;
+      }
+
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
     }
 
     return lhs;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::sym_or() {
-    auto lhs = tosuto_unwrap_move(sym_and());
+  std::expected<std::shared_ptr<node>, std::string> parser::sym_or() {
+    auto lhs = tosuto_unwrap(sym_and());
     while (tok.type == tok_type::sym_or) {
       advance();
-      auto rhs = tosuto_unwrap_move(sym_and());
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), tok_type::sym_or, lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(sym_and());
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_or, lhs->begin, rhs->end);
     }
 
     return lhs;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::sym_and() {
-    auto lhs = tosuto_unwrap_move(comp());
+  std::expected<std::shared_ptr<node>, std::string> parser::sym_and() {
+    auto lhs = tosuto_unwrap(comp());
     while (tok.type == tok_type::sym_and) {
       advance();
-      auto rhs = tosuto_unwrap_move(comp());
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), tok_type::sym_and, lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(comp());
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_and, lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -203,13 +214,13 @@ namespace tosuto {
       tok_type::greater_than_equal
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::comp() {
-    auto lhs = tosuto_unwrap_move(add());
+  std::expected<std::shared_ptr<node>, std::string> parser::comp() {
+    auto lhs = tosuto_unwrap(add());
     while (comp_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap_move(add());
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(add());
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -221,13 +232,13 @@ namespace tosuto {
       tok_type::sub
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::add() {
-    auto lhs = tosuto_unwrap_move(mul());
+  std::expected<std::shared_ptr<node>, std::string> parser::add() {
+    auto lhs = tosuto_unwrap(mul());
     while (add_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap_move(mul());
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
+      auto rhs = tosuto_unwrap(mul());
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -240,8 +251,8 @@ namespace tosuto {
       tok_type::mod
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::mul() {
-    auto lhs = tosuto_unwrap_move(range());
+  std::expected<std::shared_ptr<node>, std::string> parser::mul() {
+    auto lhs = tosuto_unwrap(range());
     while (mul_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
@@ -250,42 +261,41 @@ namespace tosuto {
       if (!thing.has_value()) {
         set_state(s);
         if (lhs->type == node_type::bin_op) {
-          auto bin_op = dynamic_uptr_cast<bin_op_node>(std::move(lhs));
-          bin_op->rhs = std::make_unique<un_op_node>(std::move(bin_op->rhs), tok_type::mul,
+          auto bin_op = tosuto_dyn_cast(bin_op_node*, lhs.get());
+          bin_op->rhs = std::make_shared<un_op_node>(bin_op->rhs, tok_type::mul,
                                        bin_op->rhs->begin, tok.begin);
-          lhs = std::move(bin_op);
         } else {
-          lhs = std::make_unique<un_op_node>(std::move(lhs), tok_type::mul, lhs->begin, tok.begin);
+          lhs = std::make_shared<un_op_node>(lhs, tok_type::mul, lhs->begin, tok.begin);
         }
       } else {
-        auto rhs = tosuto_unwrap_move(thing);
-        lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), type, lhs->begin, rhs->end);
+        auto rhs = tosuto_unwrap(thing);
+        lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
       }
     }
 
     return lhs;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::range() {
-    std::unique_ptr<node> lhs = tosuto_unwrap_move(with());
+  std::expected<std::shared_ptr<node>, std::string> parser::range() {
+    std::shared_ptr<node> lhs = tosuto_unwrap(with());
     if (tok.type == tok_type::range) {
       advance();
-      std::unique_ptr<node> rhs = tosuto_unwrap_move(with());
-      lhs = std::make_unique<range_node>(std::move(lhs), std::move(rhs), lhs->begin, rhs->end);
+      std::shared_ptr<node> rhs = tosuto_unwrap(with());
+      lhs = std::make_shared<range_node>(lhs, rhs, lhs->begin, rhs->end);
     }
 
     return lhs;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::with() {
-    std::unique_ptr<node> lhs = tosuto_unwrap_move(pre_unary());
+  std::expected<std::shared_ptr<node>, std::string> parser::with() {
+    std::shared_ptr<node> lhs = tosuto_unwrap(pre_unary());
     if (tok.type == tok_type::key_with) {
       advance();
-      std::unique_ptr<node> rhs = tosuto_unwrap_move(pre_unary());
+      std::shared_ptr<node> rhs = tosuto_unwrap(pre_unary());
       if (rhs->type != node_type::object)
         return std::unexpected{"Expected object on rhs of with expr!"};
 
-      lhs = std::make_unique<bin_op_node>(std::move(lhs), std::move(rhs), tok_type::key_with, lhs->begin, rhs->end);
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::key_with, lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -298,13 +308,13 @@ namespace tosuto {
       tok_type::sub
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::pre_unary() {
+  std::expected<std::shared_ptr<node>, std::string> parser::pre_unary() {
     pos begin = tok.begin;
     if (pre_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto body = tosuto_unwrap_move(post_unary());
-      return std::make_unique<un_op_node>(std::move(body), type, begin, body->end);
+      auto body = tosuto_unwrap(post_unary());
+      return std::make_shared<un_op_node>(body, type, begin, body->end);
     }
 
     return post_unary();
@@ -316,68 +326,68 @@ namespace tosuto {
       tok_type::dec,
     };
 
-  std::expected<std::unique_ptr<node>, std::string> parser::post_unary() {
+  std::expected<std::shared_ptr<node>, std::string> parser::post_unary() {
     pos begin = tok.begin;
-    auto body = tosuto_unwrap_move(call());
+    auto body = tosuto_unwrap(call());
     if (post_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      return std::make_unique<un_op_node>(std::move(body), type, begin, body->end);
+      return std::make_shared<un_op_node>(body, type, begin, body->end);
     }
 
     return body;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::call() {
+  std::expected<std::shared_ptr<node>, std::string> parser::call() {
     pos begin = tok.begin;
-    std::unique_ptr<node> body = tosuto_unwrap_move(atom());
+    std::shared_ptr<node> body = tosuto_unwrap(atom());
     while (tok.type == tok_type::l_paren || tok.type == tok_type::dot || tok.type == tok_type::colon || tok.type == tok_type::l_square) {
       auto type = tok.type;
       advance();
       switch (type) {
         case tok_type::l_paren: {
-          std::vector<std::unique_ptr<node>> args;
+          std::vector<std::shared_ptr<node>> args;
           while (tok.type != tok_type::r_paren) {
-            auto exp = tosuto_unwrap_move(expr());
-            args.push_back(std::move(exp));
+            auto exp = tosuto_unwrap(expr());
+            args.push_back(exp);
             if (tok.type == tok_type::comma) {
               advance();
             }
           }
 
           advance();
-          body = std::make_unique<call_node>(
-            std::move(body), std::move(args), false, begin, args.empty() ? body->end : args.back()->end);
+          body = std::make_shared<call_node>(
+            body, args, false, begin, args.empty() ? body->end : args.back()->end);
           break;
         }
         case tok_type::l_square: {
-          auto index = tosuto_unwrap_move(expr());
+          auto index = tosuto_unwrap(expr());
           tosuto_discard(expect(tok_type::r_square));
-          body = std::make_unique<bin_op_node>(
-            std::move(body), std::move(index), tok_type::l_square, begin, index->end);
+          body = std::make_shared<bin_op_node>(
+            body, index, tok_type::l_square, begin, index->end);
           break;
         }
         case tok_type::dot: {
           token id = tosuto_unwrap(expect(tok_type::id));
 
-          body = std::make_unique<field_get_node>(std::move(body), id.lexeme, begin, id.end);
+          body = std::make_shared<field_get_node>(body, id.lexeme, begin, id.end);
           break;
         }
         case tok_type::colon: {
           auto field = tosuto_unwrap(expect(tok_type::id));
           tosuto_discard(expect(tok_type::l_paren));
-          std::vector<std::unique_ptr<node>> args;
+          std::vector<std::shared_ptr<node>> args;
           while (tok.type != tok_type::r_paren) {
-            auto exp = tosuto_unwrap_move(expr());
-            args.push_back(std::move(exp));
+            auto exp = tosuto_unwrap(expr());
+            args.push_back(exp);
             if (tok.type == tok_type::comma) {
               advance();
             }
           }
 
           advance();
-          body = std::make_unique<member_call_node>(
-            std::move(body), field.lexeme, std::move(args), begin, args.empty() ? body->end : args.back()->end);
+          body = std::make_shared<member_call_node>(
+            body, field.lexeme, args, begin, args.empty() ? body->end : args.back()->end);
           break;
         }
         default: std::unreachable();
@@ -387,99 +397,99 @@ namespace tosuto {
     return body;
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::atom() {
+  std::expected<std::shared_ptr<node>, std::string> parser::atom() {
     pos begin = tok.begin;
     switch (tok.type) {
       case tok_type::l_paren: {
         advance();
-        auto exp = tosuto_unwrap_move(expr());
+        auto exp = tosuto_unwrap(expr());
         tosuto_discard(expect(tok_type::r_paren));
         return exp;
       }
       case tok_type::number: {
         double value = std::stod(tok.lexeme);
         advance();
-        return std::make_unique<number_node>(value, tok.begin, tok.end);;
+        return std::make_shared<number_node>(value, tok.begin, tok.end);;
       }
       case tok_type::string: {
-        auto nod = std::make_unique<string_node>(tok.lexeme, tok.begin, tok.end);
+        auto nod = std::make_shared<string_node>(tok.lexeme, tok.begin, tok.end);
         advance();
         return nod;
       }
       case tok_type::key_if: {
-        std::vector<std::pair<std::unique_ptr<node>, std::unique_ptr<node>>> cases;
+        std::vector<std::pair<std::shared_ptr<node>, std::shared_ptr<node>>> cases;
         advance();
-        auto exp = tosuto_unwrap_move(expr());
-        auto body = tosuto_unwrap_move(block());
-        cases.emplace_back(std::move(exp), std::move(body));
+        auto exp = tosuto_unwrap(expr());
+        auto body = tosuto_unwrap(block());
+        cases.emplace_back(exp, body);
         while (tok.type == tok_type::key_elif) {
           advance();
-          exp = tosuto_unwrap_move(expr());
-          body = tosuto_unwrap_move(block());
-          cases.emplace_back(std::move(exp), std::move(body));
+          exp = tosuto_unwrap(expr());
+          body = tosuto_unwrap(block());
+          cases.emplace_back(exp, body);
         }
 
-        std::unique_ptr<node> other = nullptr;
+        std::shared_ptr<node> other = nullptr;
         if (tok.type == tok_type::key_else) {
           advance();
-          other = tosuto_unwrap_move(block());
+          other = tosuto_unwrap(block());
         }
 
-        return std::make_unique<if_node>(std::move(cases), std::move(other), begin, tok.begin);
+        return std::make_shared<if_node>(cases, other, begin, tok.begin);
       }
       case tok_type::colon: {
         return function();
       }
       case tok_type::id: {
-        auto nod = std::make_unique<field_get_node>(nullptr, tok.lexeme, begin, tok.begin);
+        auto nod = std::make_shared<field_get_node>(nullptr, tok.lexeme, begin, tok.begin);
         advance();
         return nod;
       }
       case tok_type::l_square: {
         advance();
-        std::vector<std::unique_ptr<node>> array;
+        std::vector<std::shared_ptr<node>> array;
         while (tok.type != tok_type::r_square) {
-          auto val = tosuto_unwrap_move(expr());
-          array.emplace_back(std::move(val));
+          auto val = tosuto_unwrap(expr());
+          array.emplace_back(val);
           consume(tok_type::comma);
         }
         advance();
 
-        return std::make_unique<array_node>(std::move(array), begin, tok.begin);
+        return std::make_shared<array_node>(array, begin, tok.begin);
       }
       case tok_type::l_object: {
         advance();
-        std::vector<std::pair<std::string, std::unique_ptr<node>>> fields;
+        std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
         while (tok.type == tok_type::id) {
           auto id = tok.lexeme;
           advance();
 
           if (tok.type == tok_type::colon) {
-            auto body = tosuto_unwrap_move(function());
-            fields.emplace_back(id, std::move(body));
+            auto body = tosuto_unwrap(function());
+            fields.emplace_back(id, body);
           } else {
             tosuto_discard(expect(tok_type::assign));
-            auto body = tosuto_unwrap_move(expr());
-            fields.emplace_back(id, std::move(body));
+            auto body = tosuto_unwrap(expr());
+            fields.emplace_back(id, body);
           }
 
           consume(tok_type::comma);
         }
 
         tosuto_discard(expect(tok_type::r_object));
-        return std::make_unique<object_node>(std::move(fields), begin, tok.begin);
+        return std::make_shared<object_node>(fields, begin, tok.begin);
       }
       case tok_type::key_false: {
         advance();
-        return std::make_unique<kw_literal_node>(tok_type::key_false, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_false, begin, tok.begin);
       }
       case tok_type::key_true: {
         advance();
-        return std::make_unique<kw_literal_node>(tok_type::key_true, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_true, begin, tok.begin);
       }
       case tok_type::key_nil: {
         advance();
-        return std::make_unique<kw_literal_node>(tok_type::key_nil, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_nil, begin, tok.begin);
       }
       default:
         return std::unexpected(
@@ -504,7 +514,7 @@ namespace tosuto {
     if (tok.type == type) advance();
   }
 
-  std::expected<std::unique_ptr<node>, std::string> parser::function() {
+  std::expected<std::shared_ptr<node>, std::string> parser::function() {
     using namespace std::string_literals;
     state just_in_case = save_state();
 
@@ -533,13 +543,13 @@ namespace tosuto {
 
     if (tok.type == tok_type::r_arrow) {
       advance();
-      auto body = tosuto_unwrap_move(expr());
-      return std::make_unique<fn_def_node>(id, args, std::move(body), begin, body->end);
+      auto body = tosuto_unwrap(expr());
+      return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
     }
 
     tosuto_discard(expect(tok_type::l_curly, false));
-    auto body = tosuto_unwrap_move(block());
-    return std::make_unique<fn_def_node>(id, args, std::move(body), begin, body->end);
+    auto body = tosuto_unwrap(block());
+    return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
   }
 
   void parser::set_state(parser::state const& s) {
@@ -557,7 +567,7 @@ namespace tosuto {
 
   fn_def_node::fn_def_node(std::string name,
                            std::vector<std::pair<std::string, bool>> args,
-                           std::unique_ptr<node> body, pos begin, pos end) :
+                           std::shared_ptr<node> body, pos begin, pos end) :
     name(std::move(name)),
     args(std::move(args)),
     body(std::move(body)),
@@ -589,7 +599,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  block_node::block_node(std::vector<std::unique_ptr<node>> exprs, pos begin, pos end) :
+  block_node::block_node(std::vector<std::shared_ptr<node>> exprs, pos begin, pos end) :
     exprs(std::move(exprs)),
     node(node_type::block, begin, end) {}
 
@@ -617,7 +627,7 @@ namespace tosuto {
     return ss.str();
   }
 
-  call_node::call_node(std::unique_ptr<node> callee, std::vector<std::unique_ptr<node>> args, bool is_member,
+  call_node::call_node(std::shared_ptr<node> callee, std::vector<std::shared_ptr<node>> args, bool is_member,
                        pos begin,
                        pos end) :
     callee(std::move(callee)),
@@ -648,7 +658,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  un_op_node::un_op_node(std::unique_ptr<node> target, tok_type op, pos begin, pos end) :
+  un_op_node::un_op_node(std::shared_ptr<node> target, tok_type op, pos begin, pos end) :
     target(std::move(target)),
     op(op),
     node(node_type::un_op, begin, end) {}
@@ -664,7 +674,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  bin_op_node::bin_op_node(std::unique_ptr<node> lhs, std::unique_ptr<node> rhs, tok_type op, pos begin,
+  bin_op_node::bin_op_node(std::shared_ptr<node> lhs, std::shared_ptr<node> rhs, tok_type op, pos begin,
                            pos end) :
     lhs(std::move(lhs)),
     rhs(std::move(rhs)),
@@ -716,7 +726,7 @@ namespace tosuto {
     return ss.str();
   }
 
-  field_get_node::field_get_node(std::unique_ptr<node> target, std::string field, pos begin,
+  field_get_node::field_get_node(std::shared_ptr<node> target, std::string field, pos begin,
                                  pos end) :
     target(std::move(target)),
     field(std::move(field)),
@@ -734,7 +744,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  var_def_node::var_def_node(std::string name, std::unique_ptr<node> value, pos begin, pos end)
+  var_def_node::var_def_node(std::string name, std::shared_ptr<node> value, pos begin, pos end)
     :
     name(std::move(name)),
     value(std::move(value)),
@@ -751,7 +761,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  if_node::if_node(decltype(cases) cases, std::unique_ptr<node> else_case, pos begin, pos end) :
+  if_node::if_node(decltype(cases) cases, std::shared_ptr<node> else_case, pos begin, pos end) :
     cases(std::move(cases)),
     else_case(std::move(else_case)),
     node(node_type::if_stmt, begin, end) {}
@@ -790,7 +800,7 @@ namespace tosuto {
     return ss.str();
   }
 
-  ret_node::ret_node(std::unique_ptr<node> ret_val, pos begin, pos end) :
+  ret_node::ret_node(std::shared_ptr<node> ret_val, pos begin, pos end) :
     ret_val(std::move(ret_val)),
     node(node_type::ret, begin, end) {}
 
@@ -812,7 +822,7 @@ namespace tosuto {
     return "break";
   }
 
-  range_node::range_node(std::unique_ptr<node> start, std::unique_ptr<node> finish, pos begin, pos end) :
+  range_node::range_node(std::shared_ptr<node> start, std::shared_ptr<node> finish, pos begin, pos end) :
     start(std::move(start)),
     finish(std::move(finish)),
     node(node_type::range, begin, end) {}
@@ -840,15 +850,15 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  for_node::for_node(std::string id, std::unique_ptr<node> iterable,
-                     std::unique_ptr<node> body, pos begin, pos end) :
+  for_node::for_node(std::string id, std::shared_ptr<node> iterable,
+                     std::shared_ptr<node> body, pos begin, pos end) :
     id(std::move(id)),
     iterable(std::move(iterable)),
     body(std::move(body)),
     node(node_type::for_loop, begin, end) {}
 
   anon_fn_def_node::anon_fn_def_node(
-    std::vector<std::pair<std::string, bool>> args, std::unique_ptr<node> body, pos begin,
+    std::vector<std::pair<std::string, bool>> args, std::shared_ptr<node> body, pos begin,
     pos end) :
     args(std::move(args)), body(std::move(body)),
     node(node_type::anon_fn_def, begin, end) {}
@@ -875,7 +885,7 @@ namespace tosuto {
   }
 
   deco_node::deco_node(std::string id,
-                       std::vector<std::pair<std::string, std::unique_ptr<node>>> nodes,
+                       std::vector<std::pair<std::string, std::shared_ptr<node>>> nodes,
                        pos begin, pos end) : id(std::move(id)),
                                              fields(std::move(nodes)),
                                              node(node_type::deco, begin,
@@ -906,7 +916,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  decorated_node::decorated_node(std::vector<std::unique_ptr<node>> decos, std::unique_ptr<node> target,
+  decorated_node::decorated_node(std::vector<std::shared_ptr<node>> decos, std::shared_ptr<node> target,
                                  pos begin, pos end) : decos(std::move(decos)),
                                                        target(std::move(target)),
                                                        node(node_type::decorated, begin,
@@ -945,9 +955,9 @@ namespace tosuto {
     return "kw_literal_node: " + to_string(lit);
   }
 
-  member_call_node::member_call_node(std::unique_ptr<node> callee,
+  member_call_node::member_call_node(std::shared_ptr<node> callee,
                                      std::string field,
-                                     std::vector<std::unique_ptr<node>> args,
+                                     std::vector<std::shared_ptr<node>> args,
                                      pos begin, pos end) :
                                      callee(std::move(callee)),
                                      field(std::move(field)),
@@ -979,7 +989,7 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  array_node::array_node(std::vector<std::unique_ptr<node>> exprs, pos begin,
+  array_node::array_node(std::vector<std::shared_ptr<node>> exprs, pos begin,
                          pos end) : exprs(std::move(exprs)), node(node_type::array, begin, end) {
 
   }

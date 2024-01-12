@@ -130,7 +130,7 @@ void test_vm() {
     0,
     [](std::span<vm::value> args) {
       using namespace std::chrono;
-      size_t ms = duration_cast< milliseconds >(
+      size_t ms = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
       ).count();
       return nt_ret{vm::value{double(ms)}};

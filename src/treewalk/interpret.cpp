@@ -454,7 +454,7 @@ namespace tosuto::tree {
     std::vector<std::pair<std::string, value_ptr>> decos;
     for (auto const& deco_erased: it->decos) {
       auto deco = tosuto_dyn_cast(deco_node*, deco_erased.get());
-      auto obj = std::make_unique<object_node>(std::move(deco->fields), pos{}, pos{});
+      auto obj = std::make_shared<object_node>(std::move(deco->fields), pos{}, pos{});
       auto val = tosuto_unwrap_move(interpret(obj.get(), sym));
       decos.emplace_back(deco->id, val);
     }

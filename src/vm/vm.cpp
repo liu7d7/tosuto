@@ -129,12 +129,18 @@ namespace tosuto::vm {
 
   std::expected<void, std::string> vm::run(std::ostream& out) {
 #define TOSUTO_BIN_OP(op) \
-  do { \
+  do {                    \
+    static value::str op_name = value::str{#op};                      \
     auto b = tosuto_unwrap_move_fast(pop()); \
     auto a = tosuto_unwrap_move_fast(pop()); \
     if (a.is<value::num>() && b.is<value::num>()) { \
       tosuto_discard_fast(push(value{a.get<value::num>() op b.get<value::num>()})); \
-    } else               \
+    } else if (a.is<value::object>() && a.get<value::object>()->contains(op_name)) {    \
+      tosuto_discard_fast(push(value{a.get<value::object>()->at(op_name)}));        \
+      tosuto_discard_fast(push(value{a}));                        \
+      tosuto_discard_fast(push(std::move(b)));                        \
+      frames.emplace_back(a.get<value::object>()->at(op_name).get<value::fn>(), 0, stack.size() - 2 - 1);\
+    } else              \
       return std::unexpected{"Couldn't do " + a.to_string() + #op + b.to_string()}; \
   } while(false)
 
@@ -183,12 +189,19 @@ namespace tosuto::vm {
           break;
         }
         case op_code::add: {
+          static value::str op_name = value::str{"+"};
           value b = tosuto_unwrap_move_fast(pop());
           value a = tosuto_unwrap_move_fast(pop());
           if (a.is<value::num>() && b.is<value::num>()) {
             tosuto_discard_fast(push(value{a.get<value::num>() + b.get<value::num>()}));
           } else if (a.is<value::str>() && b.is<value::str>()) {
             tosuto_discard_fast(push(value{a.get<value::str>() + b.get<value::str>()}));
+          } else if (a.is<value::object>() && a.get<value::object>()->contains(op_name)) {    \
+            tosuto_discard_fast(push(value{a.get<value::object>()->at(op_name)}));        \
+            tosuto_discard_fast(push(value{a}));                        \
+            tosuto_discard_fast(push(std::move(b)));                        \
+            frames.emplace_back(a.get<value::object>()->at(op_name).get<value::fn>(), 0, stack.size() - 2 - 1);\
+            frame = &frames.back();
           } else {
             return std::unexpected{
               "Couldn't do " + a.to_string() + " + " + b.to_string()};

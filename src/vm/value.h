@@ -24,10 +24,9 @@ namespace tosuto::vm {
     };
 
     struct fn {
-      u8 arity;
       std::shared_ptr<chunk> ch;
-      std::string name;
-      std::vector<bool> ref;
+      str name;
+      u8 arity;
 
       fn();
 
@@ -72,3 +71,12 @@ namespace tosuto::vm {
     [[nodiscard]] bool eq(value const& other) const;
   };
 }
+
+//template<>
+//struct std::hash<tosuto::vm::value> {
+//  size_t operator()(tosuto::vm::value const& val) const {
+//    switch (val.val.index()) {
+//
+//    }
+//  }
+//};

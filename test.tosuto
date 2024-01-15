@@ -1,20 +1,11 @@
-ﾌｨﾎﾞﾅｰﾁ : ﾜ -> ﾜ < 2 & ﾜ | ﾌｨﾎﾞﾅｰﾁ(ﾜ - 2) + ﾌｨﾎﾞﾅｰﾁ(ﾜ - 1)
+// lua-like typing system, stack-based bytecode vm in C++
 
-ｷｰﾎﾞｰﾄﾞ := [|
-  a = 0
-  b = 1
-  c = 2
-  d : my a -> my.b + a
-|]
-
-log(ｷｰﾎﾞｰﾄﾞ:d(3))
-
-ｱﾚｰ := [0, 1, 2]
-
-log(ｱﾚｰ[0])
-
-ｽﾀﾄ := time()
-log(ﾌｨﾎﾞﾅｰﾁ(16))
-ｴﾝﾄﾞ := time()
-
-log(ｴﾝﾄﾞ - ｽﾀﾄ)
+x := 0
+res := 0
+for i : 0..100000000 {
+  mod := i % 4
+  if mod == 0 { res = 30 }
+  elif mod == 1 { res = 40 }
+  elif mod == 2 { res = 50 }
+  else { res = 60 }
+}

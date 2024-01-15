@@ -80,5 +80,9 @@ namespace tosuto::vm {
     std::expected<void, std::string> member_call(node* n);
 
     std::expected<void, std::string> array(node* n);
+
+    std::expected<void, std::string> for_loop(node* n);
+
+    std::expected<void, std::string> sized_array(node* n);
   };
 }

@@ -30,7 +30,8 @@ namespace tosuto {
     kw_literal,
     member_call,
     array_idx,
-    array
+    array,
+    sized_array
   };
 
   static std::string to_string(node_type type) {
@@ -58,6 +59,7 @@ namespace tosuto {
       "member_call",
       "array_idx",
       "array",
+      "sized_array",
     };
 
     return node_type_to_string[std::to_underlying(type)];
@@ -112,7 +114,15 @@ namespace tosuto {
     array_node(std::vector<std::shared_ptr<node>> exprs, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
+  };
 
+  struct sized_array_node : public node {
+    std::shared_ptr<node> size;
+    std::shared_ptr<node> val;
+
+    sized_array_node(std::shared_ptr<node> size, std::shared_ptr<node> val, pos begin, pos end);
+
+    [[nodiscard]] std::string pretty(int indent) const override;
   };
 
   struct call_node : public node {

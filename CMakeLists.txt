@@ -24,6 +24,7 @@ add_executable(tosuto main.cpp
         src/vm/compile.cpp
         src/vm/value.h
         src/vm/value.cpp
+        src/rigtorp.h
 )
 
 target_compile_options(tosuto PUBLIC "$<$<CONFIG:Release>:-Ofast>")

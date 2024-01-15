@@ -1,6 +1,7 @@
 #include "compile.h"
 
 #include <ranges>
+#include <format>
 
 namespace tosuto::vm {
   std::unordered_map<node_type, std::expected<void, std::string>(compiler::*)(tosuto::node*)> compilers {
@@ -20,6 +21,8 @@ namespace tosuto::vm {
     {node_type::anon_fn_def, &compiler::anon_fn_def},
     {node_type::member_call, &compiler::member_call},
     {node_type::array, &compiler::array},
+    {node_type::for_loop, &compiler::for_loop},
+    {node_type::sized_array, &compiler::sized_array},
   };
 
 #define TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(op) case tok_type::op: cur_ch().add(op_code::op); break;
@@ -50,7 +53,7 @@ namespace tosuto::vm {
         tosuto_discard(compile(it->rhs.get()));
         cur_ch().add(op_code::set_prop);
         auto field_name = lhs->field;
-        cur_ch().add(cur_ch().add_lit(value{value::str{field_name}})); 
+        cur_ch().add(cur_ch().add_lit_get(value{value::str{field_name}}));
 
         return {};
       }
@@ -60,7 +63,7 @@ namespace tosuto::vm {
       std::pair<op_code, u16> op =
         try_get_local.has_value() ?
           std::make_pair(op_code::set_local, *try_get_local)
-        : std::make_pair(op_code::set_global, cur_ch().add_lit(value{value::str{lhs->field}}));
+        : std::make_pair(op_code::set_global, cur_ch().add_lit_get(value{value::str{lhs->field}}));
       cur_ch().add(op.first);
       cur_ch().add(op.second);
 
@@ -100,6 +103,7 @@ namespace tosuto::vm {
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(div)
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(mod)
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(eq)
+      TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(key_with)
       case tok_type::neq: cur_ch().add(op_code::eq); cur_ch().add(op_code::inv); break;
       case tok_type::greater_than: cur_ch().add(op_code::gt); break;
       case tok_type::less_than: cur_ch().add(op_code::lt); break;
@@ -116,13 +120,97 @@ namespace tosuto::vm {
     return (this->*compilers[n->type])(n);
   }
 
+  std::expected<void, std::string> compiler::sized_array(node* n) {
+    auto it = tosuto_dyn_cast(sized_array_node*, n);
+
+    tosuto_discard(compile(it->size.get()));
+    tosuto_discard(compile(it->val.get()));
+    cur_ch().add(op_code::szd_arr);
+
+    return {};
+  }
+
+  std::expected<void, std::string> compiler::for_loop(node* n) {
+    auto it = tosuto_dyn_cast(for_node*, n);
+
+    if (it->iterable->type != node_type::range) {
+      return std::unexpected{"For only supports range rn!"};
+    }
+
+    auto iter = tosuto_dyn_cast(range_node*, it->iterable.get());
+
+    begin_block();
+
+    tosuto_discard(compile(iter->start.get()));
+    tosuto_discard(add_local(it->id));
+    auto slot = *resolve_local(it->id); // no way this fails, right?
+
+    tosuto_discard(compile(iter->finish.get()));
+    auto end_id = "@" + std::to_string(rand());
+    tosuto_discard(add_local(end_id));
+    auto end_slot = *resolve_local(end_id);
+
+    begin_block();
+
+    std::vector<size_t> next_jmps, break_jmps;
+    auto body = tosuto_dyn_cast(block_node*, it->body.get());
+
+    size_t block_start = cur_ch().data.size();
+
+    for (auto const& stmt : body->exprs) {
+      switch (stmt->type) {
+        case node_type::next: {
+          next_jmps.push_back(emit_jump(op_code::jmp));
+          break;
+        }
+        case node_type::brk: {
+          break_jmps.push_back(emit_jump(op_code::jmp));
+          break;
+        }
+        default: {
+          tosuto_discard(compile(stmt.get()));
+          pop_for_exp_stmt(stmt.get());
+          break;
+        }
+      }
+    }
+
+    for (auto jmp : next_jmps) {
+      tosuto_discard(patch_jump(jmp));
+    }
+
+    end_block();
+
+    cur_ch().add(op_code::get_local);
+    cur_ch().add(slot);
+    cur_ch().add(op_code::ld_1);
+    cur_ch().add(op_code::add);
+    cur_ch().add(op_code::set_local);
+    cur_ch().add(slot);
+    cur_ch().add(op_code::get_local);
+    cur_ch().add(end_slot);
+    cur_ch().add(op_code::lt);
+    size_t loop_jmp = emit_jump(op_code::jmpb_pop);
+    u16 jmp = loop_jmp - block_start + 2;
+    cur_ch().data[loop_jmp] = u8(jmp & 0xff);
+    cur_ch().data[loop_jmp + 1] = u8((jmp >> 8) & 0xff);
+
+    for (auto break_jmp : break_jmps) {
+      tosuto_discard(patch_jump(break_jmp));
+    }
+
+    end_block();
+
+    return {};
+  }
+
   std::expected<void, std::string> compiler::member_call(node* n) {
     auto it = tosuto_dyn_cast(member_call_node*, n);
 
     tosuto_discard(compile(it->callee.get()));
 
     cur_ch().add(op_code::get_prop);
-    auto lit = cur_ch().add_lit(value{value::str{it->field}});
+    auto lit = cur_ch().add_lit_get(value{value::str{it->field}});
     cur_ch().add(lit);
 
     tosuto_discard(compile(it->callee.get()));
@@ -166,14 +254,17 @@ namespace tosuto::vm {
 
   std::expected<void, std::string> compiler::object(node* n) {
     auto it = tosuto_dyn_cast(object_node*, n);
-    auto proto = std::make_shared<value::object::element_type>();
-    auto proto_lit = cur_ch().add_lit(value{proto});
-    cur_ch().add(op_code::lit);
-    cur_ch().add(proto_lit);
+    cur_ch().add(op_code::new_obj);
+    auto r = rand();
     for (auto const& [k, v] : it->fields) {
+      if (v->type == node_type::anon_fn_def) {
+        auto fn_def = tosuto_dyn_cast(fn_def_node*, v.get());
+        fn_def->name = k + "@" + std::format("{:04x}", r);
+      }
+
       tosuto_discard(compile(v.get()));
       cur_ch().add(op_code::def_prop);
-      auto field_name = cur_ch().add_lit(value{value::str{k}});
+      auto field_name = cur_ch().add_lit_get(value{value::str{k}});
       cur_ch().add(field_name);
     }
 
@@ -208,10 +299,9 @@ namespace tosuto::vm {
     if (args.size() > max_of<u8>)
       return std::unexpected{"Too many arguments in function!"};
     comp.fn.arity = u8(args.size());
-    comp.fn.name = it->name;
+    comp.fn.name = value::str{it->name};
     comp.fn.ch->name = it->name;
     for (auto const& arg : args) {
-      comp.fn.ref.push_back(arg.second);
       tosuto_discard(comp.add_local(arg.first));
     }
 
@@ -219,9 +309,7 @@ namespace tosuto::vm {
 
     comp.cur_ch().add(op_code::ret);
 
-    cur_ch().add(op_code::lit);
-    auto lit = cur_ch().add_lit(value{comp.fn});
-    cur_ch().add(lit);
+    cur_ch().add_lit(value{comp.fn});
 
     return {};
   }
@@ -231,7 +319,7 @@ namespace tosuto::vm {
 
     tosuto_discard(function(value::fn::type::fn, n));
     cur_ch().add(op_code::def_global);
-    auto lit = cur_ch().add_lit(value{value::str{it->name}});
+    auto lit = cur_ch().add_lit_get(value{value::str{it->name}});
     cur_ch().add(lit);
 
     return {};
@@ -298,16 +386,13 @@ namespace tosuto::vm {
   std::expected<void, std::string> compiler::if_stmt(node* n) {
     auto it = tosuto_dyn_cast(if_node*, n);
 
-    const size_t invalid_patch = max_of<size_t>;
-    size_t else_jump = invalid_patch;
-    for (size_t i = 0; i < it->cases.size(); i++) {
-      tosuto_discard(compile(it->cases[i].first.get()));
+    std::vector<size_t> else_jumps;
+    for (auto& i : it->cases) {
+      tosuto_discard(compile(i.first.get()));
       size_t then_jump = emit_jump(op_code::jmpf_pop);
 
-      tosuto_discard(exp_or_block_no_pop(it->cases[i].second.get()));
-      if (i == it->cases.size() - 1) {
-        else_jump = emit_jump(op_code::jmp);
-      }
+      tosuto_discard(exp_or_block_no_pop(i.second.get()));
+      else_jumps.push_back(emit_jump(op_code::jmp));
 
       tosuto_discard(patch_jump(then_jump));
     }
@@ -316,7 +401,9 @@ namespace tosuto::vm {
       tosuto_discard(exp_or_block_no_pop(it->else_case.get()));
     }
 
-    tosuto_discard(patch_jump(else_jump));
+    for (auto else_jump : else_jumps) {
+      tosuto_discard(patch_jump(else_jump));
+    }
 
     return {};
   }
@@ -327,7 +414,7 @@ namespace tosuto::vm {
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(key_true)
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(key_false)
       TOSUTO_SIMPLE_CVT_TOKTYPE_TO_INSTR(key_nil)
-      default: return std::unexpected{"Unknown keyword literal at " + n->pretty(0)};
+      default: return std::unexpected{"Unknown keyword lit_16 at " + n->pretty(0)};
     }
 
     return {};
@@ -359,7 +446,7 @@ namespace tosuto::vm {
       tosuto_discard(add_local(it->name));
     } else {
       cur_ch().add(op_code::def_global);
-      auto lit = cur_ch().add_lit(value{value::str{it->name}});
+      auto lit = cur_ch().add_lit_get(value{value::str{it->name}});
       cur_ch().add(lit);
     }
 
@@ -381,7 +468,7 @@ namespace tosuto::vm {
     if (it->target) {
       tosuto_discard(compile(it->target.get()));
       cur_ch().add(op_code::get_prop);
-      auto field_name = cur_ch().add_lit(value{value::str{it->field}});
+      auto field_name = cur_ch().add_lit_get(value{value::str{it->field}});
       cur_ch().add(field_name);
       return {};
     }
@@ -390,7 +477,7 @@ namespace tosuto::vm {
     std::pair<op_code, u16> op =
       try_get_local.has_value() ?
         std::make_pair(op_code::get_local, *try_get_local)
-      : std::make_pair(op_code::get_global, cur_ch().add_lit(value{value::str{it->field}}));
+      : std::make_pair(op_code::get_global, cur_ch().add_lit_get(value{value::str{it->field}}));
 
     cur_ch().add(op.first);
     cur_ch().add(op.second);
@@ -400,17 +487,19 @@ namespace tosuto::vm {
 
   std::expected<void, std::string> compiler::number(node* n) {
     auto it = tosuto_dyn_cast(number_node*, n);
-    cur_ch().add(op_code::lit);
-    auto lit = cur_ch().add_lit(value{it->value});
-    cur_ch().add(lit);
+    if (fabs(it->value) < epsilon<value::num>) {
+      cur_ch().add(op_code::ld_0);
+    } else if (fabs(it->value - 1) < epsilon<value::num>) {
+      cur_ch().add(op_code::ld_1);
+    } else {
+      cur_ch().add_lit(value{it->value});
+    }
     return {};
   }
 
   std::expected<void, std::string> compiler::string(node* n) {
     auto it = tosuto_dyn_cast(string_node*, n);
-    cur_ch().add(op_code::lit);
-    auto lit = cur_ch().add_lit(value{value::str{it->value}});
-    cur_ch().add(lit);
+    cur_ch().add_lit(value{value::str{it->value}});
     return {};
   }
 
@@ -435,6 +524,7 @@ namespace tosuto::vm {
     switch (exp->type) {
       case node_type::var_def:
       case node_type::fn_def:
+      case node_type::for_loop:
         break;
       default:
         cur_ch().add(op_code::pop);

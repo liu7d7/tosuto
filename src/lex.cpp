@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iostream>
 #include "lex.h"
 
 namespace tosuto {
@@ -16,6 +17,7 @@ namespace tosuto {
       {U"false", tok_type::key_false},
       {U"true",  tok_type::key_true},
       {U"nil",   tok_type::key_nil},
+      {U"of",   tok_type::key_of},
     };
 
   static std::unordered_map<char32_t, tok_type> symbols =
@@ -154,7 +156,7 @@ namespace tosuto {
         advance();
         if (ch == '/') {
           advance();
-          while (ch != '\n') {
+          while (ch != '\n' && ch != '\0') {
             advance();
           }
         } else if (ch == '=') {

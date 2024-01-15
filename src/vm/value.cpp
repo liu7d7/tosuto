@@ -25,7 +25,7 @@ namespace tosuto::vm {
       }
       case 4: return "nil";
       case 5: return get<str>();
-      case 6: return "<fn " + get<fn>().name + ">";
+      case 6: return "<fn " + std::string(get<fn>().name) + ">";
       case 7: return "<native fn>";
       case 8: {
         std::string s = "[";
@@ -61,7 +61,7 @@ namespace tosuto::vm {
     }
   }
 
-  value::fn::fn() : ch(std::make_shared<chunk>()), arity() {
+  value::fn::fn() : ch(std::make_shared<chunk>()), name{""}, arity() {
 
   }
 }

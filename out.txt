@@ -1,241 +1,102 @@
 block: [
-  fn_def_node: {
-    name: ﾌｨﾎﾞﾅｰﾁ,
-    args: [ﾜ],
-    body: bin_op_node: {
-      op: or,
-      lhs: bin_op_node: {
-        op: and,
-        lhs: bin_op_node: {
-          op: less_than,
+  var_def_node: {
+    name: x,
+    value: number_node: 0.000000,
+  },
+  var_def_node: {
+    name: res,
+    value: number_node: 0.000000,
+  },
+  for_node: {
+    id: i,
+    iterable: range_node: {
+      start: number_node: 0.000000,
+      finish: number_node: 100000000.000000,
+    },
+    body: block: [
+      var_def_node: {
+        name: mod,
+        value: bin_op_node: {
+          op: mod,
           lhs: field_get_node: {
             target: nil,
-            field: ﾜ,
+            field: i,
           }
-          rhs: number_node: 2.000000
-        }
-        rhs: field_get_node: {
-          target: nil,
-          field: ﾜ,
-        }
-      }
-      rhs: bin_op_node: {
-        op: add,
-        lhs: call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: ﾌｨﾎﾞﾅｰﾁ,
-          },
-          is_member: 0,
-          args: [
-            bin_op_node: {
-              op: sub,
+          rhs: number_node: 4.000000
+        },
+      },
+      if_stmt_node: {
+        cases: [
+          case{
+            cond: bin_op_node: {
+              op: eq,
               lhs: field_get_node: {
                 target: nil,
-                field: ﾜ,
+                field: mod,
               }
-              rhs: number_node: 2.000000
+              rhs: number_node: 0.000000
             }
-          ],
-        }
-        rhs: call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: ﾌｨﾎﾞﾅｰﾁ,
-          },
-          is_member: 0,
-          args: [
-            bin_op_node: {
-              op: sub,
+            body: block: [
+              bin_op_node: {
+                op: assign,
+                lhs: field_get_node: {
+                  target: nil,
+                  field: res,
+                }
+                rhs: number_node: 30.000000
+              },
+            ]
+          }          case{
+            cond: bin_op_node: {
+              op: eq,
               lhs: field_get_node: {
                 target: nil,
-                field: ﾜ,
+                field: mod,
               }
               rhs: number_node: 1.000000
             }
-          ],
-        }
-      }
-    }
-  },
-  var_def_node: {
-    name: ｷｰﾎﾞｰﾄﾞ,
-    value: object_node: {
-      a: number_node: 0.000000
-      b: number_node: 1.000000
-      c: number_node: 2.000000
-      d: fn_def_node: {
-        name: ,
-        args: [my, a],
-        body: bin_op_node: {
-          op: add,
-          lhs: field_get_node: {
-            target: field_get_node: {
-              target: nil,
-              field: my,
-            },
-            field: b,
-          }
-          rhs: field_get_node: {
-            target: nil,
-            field: a,
-          }
-        }
-      }
-    },
-  },
-  call_node: {
-    callee: field_get_node: {
-      target: nil,
-      field: log,
-    },
-    is_member: 0,
-    args: [
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: ｷｰﾎﾞｰﾄﾞ,
-        },
-        field: d,
-        args: [
-          number_node: 3.000000
-        ],
-      }
-    ],
-  },
-  var_def_node: {
-    name: g,
-    value: number_node: 2.000000,
-  },
-  bin_op_node: {
-    op: assign,
-    lhs: field_get_node: {
-      target: nil,
-      field: g,
-    }
-    rhs: bin_op_node: {
-      op: mul,
-      lhs: field_get_node: {
-        target: nil,
-        field: g,
-      }
-      rhs: number_node: 3.000000
-    }
-  },
-  call_node: {
-    callee: field_get_node: {
-      target: nil,
-      field: log,
-    },
-    is_member: 0,
-    args: [
-      bin_op_node: {
-        op: add,
-        lhs: string_node: "g: "
-        rhs: call_node: {
-          callee: field_get_node: {
-            target: nil,
-            field: to_str,
-          },
-          is_member: 0,
-          args: [
-            field_get_node: {
-              target: nil,
-              field: g,
+            body: block: [
+              bin_op_node: {
+                op: assign,
+                lhs: field_get_node: {
+                  target: nil,
+                  field: res,
+                }
+                rhs: number_node: 40.000000
+              },
+            ]
+          }          case{
+            cond: bin_op_node: {
+              op: eq,
+              lhs: field_get_node: {
+                target: nil,
+                field: mod,
+              }
+              rhs: number_node: 2.000000
             }
-          ],
-        }
-      }
-    ],
-  },
-  var_def_node: {
-    name: ｱﾚｰ,
-    value: array: [
-      number_node: 0.000000,
-      number_node: 1.000000,
-      number_node: 2.000000,
-    ],
-  },
-  call_node: {
-    callee: field_get_node: {
-      target: nil,
-      field: log,
-    },
-    is_member: 0,
-    args: [
-      bin_op_node: {
-        op: l_square,
-        lhs: field_get_node: {
-          target: nil,
-          field: ｱﾚｰ,
-        }
-        rhs: number_node: 0.000000
-      }
-    ],
-  },
-  var_def_node: {
-    name: ｽﾀﾄ,
-    value: call_node: {
-      callee: field_get_node: {
-        target: nil,
-        field: time,
-      },
-      is_member: 0,
-      args: [
-
-      ],
-    },
-  },
-  call_node: {
-    callee: field_get_node: {
-      target: nil,
-      field: log,
-    },
-    is_member: 0,
-    args: [
-      call_node: {
-        callee: field_get_node: {
-          target: nil,
-          field: ﾌｨﾎﾞﾅｰﾁ,
-        },
-        is_member: 0,
-        args: [
-          number_node: 16.000000
+            body: block: [
+              bin_op_node: {
+                op: assign,
+                lhs: field_get_node: {
+                  target: nil,
+                  field: res,
+                }
+                rhs: number_node: 50.000000
+              },
+            ]
+          }
         ],
-      }
-    ],
-  },
-  var_def_node: {
-    name: ｴﾝﾄﾞ,
-    value: call_node: {
-      callee: field_get_node: {
-        target: nil,
-        field: time,
+        other: block: [
+          bin_op_node: {
+            op: assign,
+            lhs: field_get_node: {
+              target: nil,
+              field: res,
+            }
+            rhs: number_node: 60.000000
+          },
+        ]
       },
-      is_member: 0,
-      args: [
-
-      ],
-    },
-  },
-  call_node: {
-    callee: field_get_node: {
-      target: nil,
-      field: log,
-    },
-    is_member: 0,
-    args: [
-      bin_op_node: {
-        op: sub,
-        lhs: field_get_node: {
-          target: nil,
-          field: ｴﾝﾄﾞ,
-        }
-        rhs: field_get_node: {
-          target: nil,
-          field: ｽﾀﾄ,
-        }
-      }
     ],
   },
 ]

@@ -86,11 +86,27 @@ namespace tosuto {
     auto decor = tosuto_unwrap(decos());
     if (tok.type == tok_type::id &&
         (next.type == tok_type::colon || next.type == tok_type::l_curly || next.type == tok_type::r_arrow)) {
+      auto fn_try = function();
       if (decor.empty()) {
-        return function();
+        if (!fn_try.has_value() && fn_try.error() == "call!") {
+          goto expr;
+        }
+
+        if (!fn_try.has_value()) {
+          return std::unexpected{fn_try.error()};
+        }
+
+        return fn_try.value();
       } else {
-        auto fn = tosuto_unwrap(function());
-        return std::make_shared<decorated_node>(decor, fn, decor.front()->begin, tok.begin);
+        if (!fn_try.has_value() && fn_try.error() == "call!") {
+          goto expr;
+        }
+
+        if (!fn_try.has_value()) {
+          return std::unexpected{fn_try.error()};
+        }
+
+        return std::make_shared<decorated_node>(decor, fn_try.value(), decor.front()->begin, tok.begin);
       }
     }
 
@@ -119,6 +135,7 @@ namespace tosuto {
         return std::make_shared<break_node>(cur.begin, cur.end);
       }
       default: {
+        expr:;
         if (decor.empty()) {
           return expr();
         } else {
@@ -447,12 +464,32 @@ namespace tosuto {
       }
       case tok_type::l_square: {
         advance();
+
         std::vector<std::shared_ptr<node>> array;
+        if (tok.type == tok_type::r_square) {
+          goto end_array;
+        }
+
+        {
+          auto size = tosuto_unwrap(expr());
+          array.emplace_back(size);
+          if (tok.type == tok_type::semicolon) {
+            advance();
+            auto val = tosuto_unwrap(expr());
+            tosuto_discard(expect(tok_type::r_square));
+            return std::make_unique<sized_array_node>(size, val, begin, tok.begin);
+          }
+
+          consume(tok_type::comma);
+        }
+
         while (tok.type != tok_type::r_square) {
           auto val = tosuto_unwrap(expr());
           array.emplace_back(val);
           consume(tok_type::comma);
         }
+
+        end_array:
         advance();
 
         return std::make_shared<array_node>(array, begin, tok.begin);
@@ -992,5 +1029,21 @@ namespace tosuto {
   array_node::array_node(std::vector<std::shared_ptr<node>> exprs, pos begin,
                          pos end) : exprs(std::move(exprs)), node(node_type::array, begin, end) {
 
+  }
+
+  sized_array_node::sized_array_node(std::shared_ptr<node> size, std::shared_ptr<node> val, pos begin,
+                                     pos end) : size(std::move(size)), val(std::move(val)), node(node_type::sized_array, begin, end) {
+
+  }
+
+  std::string sized_array_node::pretty(int indent) const {
+    std::string ind = std::string((indent + 1) * 2, ' ');
+
+    return (
+      std::stringstream()
+        << "sized_array_node: {\n"
+        << ind << "target: " << size->pretty(indent + 1) << '\n'
+        << ind << "val: " << val->pretty(indent + 1) << '\n'
+        << std::string(indent * 2, ' ') << '}').str();
   }
 }

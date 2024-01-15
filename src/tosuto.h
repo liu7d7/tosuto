@@ -115,9 +115,13 @@ Stream& operator<<
 namespace tosuto {
   using u8 = uint8_t;
   using u16 = uint16_t;
+  using u32 = uint32_t;
 
   template<typename T>
   constexpr T max_of = std::numeric_limits<T>::max();
+
+  template<typename T>
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
 
   struct pos {
     size_t idx, col, row;

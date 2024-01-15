@@ -63,6 +63,7 @@ namespace tosuto {
     key_true,
     key_nil,
     question,
+    key_of
   };
 
   static std::string to_string(tok_type type) {
@@ -124,7 +125,8 @@ namespace tosuto {
         "false",
         "true",
         "nil",
-        "question"
+        "question",
+        "of",
       };
 
     return tok_type_to_string[std::to_underlying(type)];

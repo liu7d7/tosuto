@@ -2,7 +2,7 @@
 #include "interpret.h"
 
 namespace tosuto::tree {
-  interpreter::interpret_fn interpreters[] {
+  interpreter::interpret_fn interpreters[]{
     &interpreter::fn_def,
     &interpreter::block,
     &interpreter::call,
@@ -165,7 +165,8 @@ namespace tosuto::tree {
 
           return fail(nod);
         }
-        value_ptr first = tosuto_unwrap_move(interpret(field_get->target.get(), sym));
+        value_ptr first = tosuto_unwrap_move(
+          interpret(field_get->target.get(), sym));
         args.push_back(first);
       } else {
         return fail(
@@ -175,7 +176,7 @@ namespace tosuto::tree {
 
     end_resolution:;
 
-    for (auto const& arg : it->args) {
+    for (auto const& arg: it->args) {
       auto attempt = tosuto_unwrap_move(interpret(arg.get(), sym));
       args.push_back(attempt);
     }
@@ -329,7 +330,7 @@ namespace tosuto::tree {
 
     std::string failed;
     std::vector<std::pair<std::string, value_ptr>> fields;
-    for (auto const& [k, v] : it->fields) {
+    for (auto const& [k, v]: it->fields) {
       auto attempt = tosuto_unwrap_move(interpret(v.get(), sym));
       fields.emplace_back(k, attempt);
     }
@@ -454,7 +455,8 @@ namespace tosuto::tree {
     std::vector<std::pair<std::string, value_ptr>> decos;
     for (auto const& deco_erased: it->decos) {
       auto deco = tosuto_dyn_cast(deco_node*, deco_erased.get());
-      auto obj = std::make_shared<object_node>(std::move(deco->fields), pos{}, pos{});
+      auto obj = std::make_shared<object_node>(std::move(deco->fields), pos{},
+                                               pos{});
       auto val = tosuto_unwrap_move(interpret(obj.get(), sym));
       decos.emplace_back(deco->id, val);
     }

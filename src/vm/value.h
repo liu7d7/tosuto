@@ -5,6 +5,7 @@
 #include <numeric>
 #include <variant>
 #include <cmath>
+#include <expected>
 #include <span>
 #include "../tosuto.h"
 
@@ -24,9 +25,7 @@ namespace tosuto::vm {
     };
 
     struct fn {
-      std::shared_ptr<chunk> ch;
-      str name;
-      u8 arity;
+      std::shared_ptr<std::pair<chunk, u8>> ch;
 
       fn();
 

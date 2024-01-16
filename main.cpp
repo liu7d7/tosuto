@@ -27,7 +27,8 @@ void test_file(std::string const& filename) {
     {
       {
         {"log", std::make_shared<tosuto::tree::value>(
-          std::make_pair([](tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
+          std::make_pair([](
+            tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
             auto res = tosuto_unwrap(sym.get("x"));
             auto display = tosuto_unwrap(res->display(sym));
             std::cout << display << "\n";
@@ -35,7 +36,8 @@ void test_file(std::string const& filename) {
           }, std::vector<std::pair<std::string, bool>>{{"x", true}}))},
 
         {"to_str", std::make_shared<tosuto::tree::value>(
-          std::make_pair([](tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
+          std::make_pair([](
+            tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
             auto res = tosuto_unwrap(sym.get("x"));
             auto display = tosuto_unwrap(res->display(sym));
             return std::make_shared<tosuto::tree::value>(display);
@@ -43,25 +45,34 @@ void test_file(std::string const& filename) {
             {"x", true}}))},
 
         {"has_deco", std::make_shared<tosuto::tree::value>(
-          std::make_pair([](tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
+          std::make_pair([](
+            tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
             auto obj = tosuto_unwrap(sym.get("obj"));
             auto name = tosuto_unwrap(sym.get("name"));
-            if (!name->is<std::string>()) return tosuto::tree::interpreter::fail("Expected str, got " + name->type_name());
+            if (!name->is<std::string>())
+              return tosuto::tree::interpreter::fail(
+                "Expected str, got " + name->type_name());
             return obj->has_deco(name->get<std::string>());
           }, std::vector<std::pair<std::string, bool>>{
-            {"obj", true}, {"name", true}}))},
+            {"obj",  true},
+            {"name", true}}))},
 
         {"get_deco", std::make_shared<tosuto::tree::value>(
-          std::make_pair([](tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
+          std::make_pair([](
+            tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
             auto obj = tosuto_unwrap(sym.get("obj"));
             auto name = tosuto_unwrap(sym.get("name"));
-            if (!name->is<std::string>()) return tosuto::tree::interpreter::fail("Expected str, got " + name->type_name());
+            if (!name->is<std::string>())
+              return tosuto::tree::interpreter::fail(
+                "Expected str, got " + name->type_name());
             return obj->get_deco(name->get<std::string>());
           }, std::vector<std::pair<std::string, bool>>{
-            {"obj", true}, {"name", true}}))},
+            {"obj",  true},
+            {"name", true}}))},
 
         {"time", std::make_shared<tosuto::tree::value>(
-          std::make_pair([](tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
+          std::make_pair([](
+            tosuto::tree::symbol_table& sym) -> tosuto::tree::interpret_result {
             using namespace std::chrono;
             int64_t ms = duration_cast<milliseconds>(
               system_clock::now().time_since_epoch()
@@ -128,7 +139,7 @@ void test_vm() {
   size_t compile_time = finish - start;
   if (!res.has_value()) throw std::runtime_error(res.error());
   auto& fn = res.value();
-  fn.ch->disasm(std::cout);
+  fn.ch->first.disasm(std::cout);
   std::cout << "\nvm: \n";
 
   using namespace tosuto;

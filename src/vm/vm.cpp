@@ -12,11 +12,11 @@ namespace tosuto::vm {
 
     out << "\n";
 
-    for (auto const& it : literals) {
+    for (auto const& it: literals) {
       if (!it.is<value::fn>()) continue;
       auto& fn = it.get<value::fn>();
-      out << name << "." << std::string(fn.name) << ":\n";
-      fn.ch->disasm(out, false);
+      out << name << "." << std::string(fn.ch->first.name) << ":\n";
+      fn.ch->first.disasm(out, false);
       out << "\n";
     }
   }
@@ -86,11 +86,13 @@ namespace tosuto::vm {
         return idx + 3;
       }
       case op_code::get_local: {
-        out << std::left << std::setw(9) << "get_loc" << rd_u16(idx + 1) << '\n';
+        out << std::left << std::setw(9) << "get_loc" << rd_u16(idx + 1)
+            << '\n';
         return idx + 3;
       }
       case op_code::set_local: {
-        out << std::left << std::setw(9) << "set_loc" << rd_u16(idx + 1) << '\n';
+        out << std::left << std::setw(9) << "set_loc" << rd_u16(idx + 1)
+            << '\n';
         return idx + 3;
       }
       case op_code::array: {
@@ -98,15 +100,18 @@ namespace tosuto::vm {
         return idx + 3;
       }
       case op_code::def_prop: {
-        out << std::left << std::setw(9) << "def_prop" << lit_16(idx + 1) << '\n';
+        out << std::left << std::setw(9) << "def_prop" << lit_16(idx + 1)
+            << '\n';
         return idx + 3;
       }
       case op_code::get_prop: {
-        out << std::left << std::setw(9) << "get_prop" << lit_16(idx + 1) << '\n';
+        out << std::left << std::setw(9) << "get_prop" << lit_16(idx + 1)
+            << '\n';
         return idx + 3;
       }
       case op_code::set_prop: {
-        out << std::left << std::setw(9) << "set_prop" << lit_16(idx + 1) << '\n';
+        out << std::left << std::setw(9) << "set_prop" << lit_16(idx + 1)
+            << '\n';
         return idx + 3;
       }
       case op_code::jmpb_pop: {
@@ -134,7 +139,8 @@ namespace tosuto::vm {
         return idx + 3;
       }
       case op_code::call: {
-        out << std::left << std::setw(9) << "call" << std::to_string(rd_u8(idx + 1)) << '\n';
+        out << std::left << std::setw(9) << "call"
+            << std::to_string(rd_u8(idx + 1)) << '\n';
         return idx + 2;
       }
       default: {
@@ -148,8 +154,8 @@ namespace tosuto::vm {
 #define TOSUTO_BIN_OP(op) \
   do {                    \
     static value::str op_name = value::str{#op};                      \
-    auto b = std::move(pop_top); \
-    auto a = std::move(pop_top); \
+    auto b = pop_top; \
+    auto a = pop_top; \
     if (a.is<value::num>() && b.is<value::num>()) { \
       inc_top = value{a.get<value::num>() op b.get<value::num>()}; \
     } else if (a.is<value::object>() && a.get<value::object>()->contains(op_name)) {    \
@@ -162,30 +168,31 @@ namespace tosuto::vm {
   } while(false)
 
     auto* frame = &frames.back();
-    u8* ip = frame->fn.ch->data.data();
-    std::stack<u8*> ip_stack{};
-    value* lits = frame->fn.ch->literals.data();
+    u8* ip = frame->fn.ch->first.data.data();
+    u8** ip_stack;
+    u8* internal[max_of<u8>];
+    ip_stack = &internal[0];
+    value* lits = frame->fn.ch->first.literals.data();
     size_t frame_offset = 0;
     value* stack_top = stack.data();
-    auto update_stack_frame = [this, &ip, &frame, &lits, &frame_offset, &ip_stack](bool pop) {
-      frame = &frames.back();
-      if (!pop) {
-        ip_stack.push(ip);
-        ip = frame->fn.ch->data.data();
-      } else {
-        auto it = ip_stack.top();
-        ip_stack.pop();
-        ip = it;
-      }
-      lits = frame->fn.ch->literals.data();
-      frame_offset = frame->offset;
-    };
+    auto update_stack_frame =
+      [this, &ip, &frame, &lits, &frame_offset, &ip_stack](bool pop) {
+        frame = &frames.back();
+        if (!pop) {
+          *(ip_stack++) = ip;
+          ip = frame->fn.ch->first.data.data();
+        } else {
+          ip = *--ip_stack;
+        }
+        lits = frame->fn.ch->first.literals.data();
+        frame_offset = frame->offset;
+      };
 
 #define stack_size size_t(stack_top - stack.data() + 1)
 #define inc_top (*(++stack_top))
 #define peek_top (*stack_top)
 #define peek_off_top(idx) (stack_top[-(idx)])
-#define pop_top (*stack_top--)
+#define pop_top std::move(*stack_top--)
 #define rd_u16() (ip += 2, u16(ip[-2]) + u16(ip[-1] << 8))
 #define rd_u8() (*ip++)
 #define rd_lit_16() (ip += 2, lits[u16(ip[-2]) + u16(ip[-1] << 8)])
@@ -208,7 +215,7 @@ namespace tosuto::vm {
 
       switch (rd_op()) {
         case op_code::ret: {
-          auto result = std::move(pop_top);
+          auto result = pop_top;
           auto last_frame = frames.back();
           frames.pop_back();
           if (frames.empty()) {
@@ -242,7 +249,7 @@ namespace tosuto::vm {
           break;
         }
         case op_code::neg: {
-          value a = std::move(pop_top);
+          value a = pop_top;
           if (a.is<value::num>()) {
             inc_top = value{-a.get<value::num>()};
           } else {
@@ -253,17 +260,21 @@ namespace tosuto::vm {
         }
         case op_code::add: {
           static value::str op_name = value::str{"+"};
-          value b = std::move(pop_top);
-          value a = std::move(pop_top);
+          value b = pop_top;
+          value a = pop_top;
           if (a.is<value::num>() && b.is<value::num>()) {
             inc_top = value{a.get<value::num>() + b.get<value::num>()};
           } else if (a.is<value::str>() && b.is<value::str>()) {
             inc_top = value{a.get<value::str>() + b.get<value::str>()};
-          } else if (a.is<value::object>() && a.get<value::object>()->contains(op_name)) {    \
+          } else if (a.is<value::object>() &&
+                     a.get<value::object>()->contains(op_name)) {
+            \
             inc_top = value{a.get<value::object>()->at(op_name)};        \
             inc_top = a;                        \
             inc_top = std::move(b);                        \
-            frames.emplace_back(a.get<value::object>()->at(op_name).get<value::fn>(), 0, stack.size() - 2 - 1);\
+            frames.emplace_back(
+              a.get<value::object>()->at(op_name).get<value::fn>(), 0,
+              stack.size() - 2 - 1);\
             update_stack_frame(false);
           } else {
             return std::unexpected{
@@ -271,26 +282,32 @@ namespace tosuto::vm {
           }
           break;
         }
-        case op_code::sub:
-          TOSUTO_BIN_OP(-);
+        case op_code::sub:TOSUTO_BIN_OP(-);
           break;
-        case op_code::mul:
-          TOSUTO_BIN_OP(*);
+        case op_code::mul:TOSUTO_BIN_OP(*);
           break;
-        case op_code::div:
-          TOSUTO_BIN_OP(/);
+        case op_code::div:TOSUTO_BIN_OP(/);
           break;
-        case op_code::lt:
-          TOSUTO_BIN_OP(<);
+        case op_code::lt:TOSUTO_BIN_OP(<);
           break;
-        case op_code::gt:
-          TOSUTO_BIN_OP(>);
+        case op_code::gt:TOSUTO_BIN_OP(>);
           break;
         case op_code::mod: {
-          value b = std::move(pop_top);
-          value a = std::move(pop_top);
+          static value::str op_name = value::str{"%"};
+          value b = pop_top;
+          value a = pop_top;
           if (a.is<value::num>() && b.is<value::num>()) {
             inc_top = value{fmod(a.get<value::num>(), b.get<value::num>())};
+          } else if (a.is<value::object>() &&
+                     a.get<value::object>()->contains(op_name)) {
+            \
+            inc_top = value{a.get<value::object>()->at(op_name)};        \
+            inc_top = a;                        \
+            inc_top = std::move(b);                        \
+            frames.emplace_back(
+              a.get<value::object>()->at(op_name).get<value::fn>(), 0,
+              stack.size() - 2 - 1);\
+            update_stack_frame(false);
           } else {
             return std::unexpected{
               "Couldn't do " + a.to_string() + " % " + b.to_string()};
@@ -298,13 +315,13 @@ namespace tosuto::vm {
           break;
         }
         case op_code::eq: {
-          value b = std::move(pop_top);
-          value a = std::move(pop_top);
+          value b = pop_top;
+          value a = pop_top;
           inc_top = value{a.eq(b)};
           break;
         }
         case op_code::inv: {
-          value a = std::move(pop_top);
+          value a = pop_top;
           inc_top = value{!a.is_truthy()};
           break;
         }
@@ -320,7 +337,8 @@ namespace tosuto::vm {
           if (it != globals.end()) {
             it->second = peek_top;
           } else {
-            return std::unexpected{"Could not find " + std::string(name) + " in globals!"};
+            return std::unexpected{
+              "Could not find " + std::string(name) + " in globals!"};
           }
 
           break;
@@ -331,14 +349,15 @@ namespace tosuto::vm {
           if (it != globals.end()) {
             inc_top = it->second;
           } else {
-            return std::unexpected{"Could not find " + std::string(name) + " in globals!"};
+            return std::unexpected{
+              "Could not find " + std::string(name) + " in globals!"};
           }
 
           break;
         }
         case op_code::def_global: {
           auto name = rd_lit_16().get<value::str>();
-          globals[name] = std::move(pop_top);
+          globals[name] = pop_top;
           break;
         }
         case op_code::get_local: {
@@ -363,19 +382,20 @@ namespace tosuto::vm {
         }
         case op_code::jmpf_pop: {
           u16 off = rd_u16();
-          value it = std::move(pop_top);
+          value it = pop_top;
           if (!it.is_truthy()) ip += off;
           break;
         }
         case op_code::jmpb_pop: {
           u16 off = rd_u16();
-          value it = std::move(pop_top);
+          value it = pop_top;
           if (it.is_truthy()) ip -= off;
           break;
         }
         case op_code::call: {
           u8 arity = rd_u8();
-          tosuto_discard_fast(call(peek_off_top(arity), arity, stack_top, update_stack_frame));
+          tosuto_discard_fast(
+            call(peek_off_top(arity), arity, stack_top, update_stack_frame));
           break;
         }
         case op_code::new_obj: {
@@ -384,7 +404,7 @@ namespace tosuto::vm {
         }
         case op_code::def_prop: {
           value::str name = rd_lit_16().get<value::str>();
-          value field_val = std::move(pop_top);
+          value field_val = pop_top;
           value obj = peek_top;
           auto& obj_fields = obj.get<value::object>();
           obj_fields->operator[](name) = field_val;
@@ -392,11 +412,12 @@ namespace tosuto::vm {
         }
         case op_code::get_prop: {
           value::str name = rd_lit_16().get<value::str>();
-          value obj = std::move(pop_top);
+          value obj = pop_top;
           auto& obj_fields = obj.get<value::object>();
           auto it = obj_fields->find(name);
           if (it == obj_fields->end()) {
-            return std::unexpected{"Failed to find " + std::string(name) + " in " + obj.to_string()};
+            return std::unexpected{
+              "Failed to find " + std::string(name) + " in " + obj.to_string()};
           }
 
           inc_top = it->second;
@@ -404,8 +425,8 @@ namespace tosuto::vm {
         }
         case op_code::set_prop: {
           value::str name = rd_lit_16().get<value::str>();
-          value val = std::move(pop_top);
-          value obj = std::move(pop_top);
+          value val = pop_top;
+          value obj = pop_top;
           auto& obj_fields = obj.get<value::object>();
 
           obj_fields->operator[](name) = val;
@@ -413,11 +434,13 @@ namespace tosuto::vm {
           break;
         }
         case op_code::get_idx: {
-          value index = std::move(pop_top);
-          value array = std::move(pop_top);
+          value index = pop_top;
+          value array = pop_top;
 
           if (!index.is<value::num>() || !array.is<value::array>()) {
-            return std::unexpected{"Can't perform " + array.to_string() + "[" + index.to_string() + "]"};
+            return std::unexpected{
+              "Can't perform " + array.to_string() + "[" + index.to_string() +
+              "]"};
           }
 
           inc_top = value{array.get<value::array>()->at(
@@ -425,28 +448,30 @@ namespace tosuto::vm {
           break;
         }
         case op_code::szd_arr: {
-          value val = std::move(pop_top);
-          value size = std::move(pop_top);
+          value val = pop_top;
+          value size = pop_top;
 
           if (!size.is<value::num>()) {
             return std::unexpected{"Size of szd_arr not a number!"};
           }
 
-          (*stack_top++) = value{std::make_shared<value::array::element_type>(size_t(size.get<value::num>()), val)};
+          (*stack_top++) = value{std::make_shared<value::array::element_type>(
+            size_t(size.get<value::num>()), val)};
           break;
         }
         case op_code::key_with: {
-          value b = std::move(pop_top);
-          value a = std::move(pop_top);
+          value b = pop_top;
+          value a = pop_top;
 
           if (!a.is<value::object>() || !b.is<value::object>()) {
-            return std::unexpected{"Can't do " + a.to_string() + " with " + b.to_string()};
+            return std::unexpected{
+              "Can't do " + a.to_string() + " with " + b.to_string()};
           }
 
           auto a_fields = *a.get<value::object>();
           auto& b_fields = *b.get<value::object>();
 
-          for (auto const& [k, v] : b_fields) {
+          for (auto const& [k, v]: b_fields) {
             a_fields[k] = v;
           }
 
@@ -456,22 +481,27 @@ namespace tosuto::vm {
           break;
         }
         case op_code::set_idx: {
-          value val = std::move(pop_top);
-          value index = std::move(pop_top);
-          value array = std::move(pop_top);
+          value val = pop_top;
+          value index = pop_top;
+          value array = pop_top;
 
           if (!index.is<value::num>() || !array.is<value::array>()) {
-            return std::unexpected{"Can't perform " + array.to_string() + "[" + index.to_string() + "]"};
+            return std::unexpected{
+              "Can't perform " + array.to_string() + "[" + index.to_string() +
+              "]"};
           }
 
-          array.get<value::array>()->at(size_t(floor(index.get<value::num>()))) = val;
+          array.get<value::array>()->at(
+            size_t(floor(index.get<value::num>()))) = val;
           inc_top = std::move(val);
           break;
         }
         case op_code::array: {
           u16 size = rd_u16();
 
-          auto val = value{std::make_shared<value::array::element_type>(stack_top - size + 1, stack_top + 1)};
+          auto val = value{
+            std::make_shared<value::array::element_type>(stack_top - size + 1,
+                                                         stack_top + 1)};
 
           stack_top -= size;
           inc_top = std::move(val);
@@ -482,7 +512,8 @@ namespace tosuto::vm {
   }
 
   std::expected<void, std::string>
-  vm::call(value& callee, u8 arity, value*& stack_top, std::function<void(bool)> const& update_stack_frame) {
+  vm::call(value& callee, u8 arity, value*& stack_top,
+           std::function<void(bool)> const& update_stack_frame) {
     if (callee.is<value::native_fn>()) {
       auto fn = callee.get<value::native_fn>();
       if (arity != fn.second) {
@@ -492,7 +523,8 @@ namespace tosuto::vm {
           + ", got: " + std::to_string(arity) + ")"};
       }
 
-      auto res = tosuto_unwrap_move_fast(fn.first(std::span{stack_top + 1 - arity, stack_top + 1}));
+      auto res = tosuto_unwrap_move_fast(
+        fn.first(std::span{stack_top + 1 - arity, stack_top + 1}));
       stack_top -= arity;
       stack_top--;
       inc_top = res;
@@ -501,10 +533,10 @@ namespace tosuto::vm {
 
     if (callee.is<value::fn>()) {
       auto& fn = callee.get<value::fn>();
-      if (fn.arity != arity) {
+      if (fn.ch->second != arity) {
         return std::unexpected{
           "Non-matching # of arguments! (exp: "
-          + std::to_string(fn.arity)
+          + std::to_string(fn.ch->second)
           + ", got: " + std::to_string(arity) + ")"};
       }
 

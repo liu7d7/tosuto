@@ -3,6 +3,8 @@
 #include <stack>
 #include "../tosuto.h"
 #include "value.h"
+#include <utility>
+#include <variant>
 
 namespace tosuto::vm {
   enum class op_code : u8 {
@@ -126,36 +128,8 @@ namespace tosuto::vm {
                                         stack() {
       stack.reserve(max_of<u16>);
       frames.reserve(max_of<u8>);
-      void(push(value{frames.back().fn})); // if this fails we're screwed anyway
+      stack[0] = value{frames.back().fn};
     }
-
-#ifdef NDEBUG
-    inline dummy_expected<void> push(value val) {
-      stack.push_back(std::move(val));
-      return {};
-    }
-
-    inline dummy_expected<value> pop() {
-      value top = stack.back();
-      stack.pop_back();
-      return dummy_expected{std::move(top)};
-    }
-#else
-    inline std::expected<void, std::string> push(value val) {
-      if (stack.size() > max_of<u16>) {
-        return std::unexpected{
-          "Chance of invalidation of references due to vector resize"};
-      }
-      stack.push_back(std::move(val));
-      return {};
-    }
-
-    inline std::expected<value, std::string> pop() {
-      value top = stack.back();
-      stack.pop_back();
-      return top;
-    }
-#endif
 
     void
     def_native(std::string const& name, value::native_fn::second_type arity,
@@ -164,6 +138,7 @@ namespace tosuto::vm {
     std::expected<void, std::string> run(std::ostream& out);
 
     std::expected<void, std::string>
-    call(value& callee, u8 arity, value*& stack_top, std::function<void(bool)> const& update_stack_frame);
+    call(value& callee, u8 arity, value*& stack_top,
+         std::function<void(bool)> const& update_stack_frame);
   };
 }

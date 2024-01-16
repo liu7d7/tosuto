@@ -53,10 +53,12 @@ namespace tosuto {
     auto iterable = tosuto_unwrap(expr());
     auto body = tosuto_unwrap(block());
 
-    return std::make_shared<for_node>(id.lexeme, iterable, body, begin, body->end);
+    return std::make_shared<for_node>(id.lexeme, iterable, body, begin,
+                                      body->end);
   }
 
-  std::expected<std::vector<std::shared_ptr<node>>, std::string> parser::decos() {
+  std::expected<std::vector<std::shared_ptr<node>>, std::string>
+  parser::decos() {
     std::vector<std::shared_ptr<node>> decos;
     while (tok.type == tok_type::at) {
       pos begin = tok.begin;
@@ -76,7 +78,8 @@ namespace tosuto {
         tosuto_discard(expect(tok_type::r_paren));
       }
 
-      decos.push_back(std::make_shared<deco_node>(id.lexeme, fields, begin, tok.begin));
+      decos.push_back(
+        std::make_shared<deco_node>(id.lexeme, fields, begin, tok.begin));
     }
 
     return decos;
@@ -85,7 +88,8 @@ namespace tosuto {
   std::expected<std::shared_ptr<node>, std::string> parser::statement() {
     auto decor = tosuto_unwrap(decos());
     if (tok.type == tok_type::id &&
-        (next.type == tok_type::colon || next.type == tok_type::l_curly || next.type == tok_type::r_arrow)) {
+        (next.type == tok_type::colon || next.type == tok_type::l_curly ||
+         next.type == tok_type::r_arrow)) {
       auto fn_try = function();
       if (decor.empty()) {
         if (!fn_try.has_value() && fn_try.error() == "call!") {
@@ -106,7 +110,9 @@ namespace tosuto {
           return std::unexpected{fn_try.error()};
         }
 
-        return std::make_shared<decorated_node>(decor, fn_try.value(), decor.front()->begin, tok.begin);
+        return std::make_shared<decorated_node>(decor, fn_try.value(),
+                                                decor.front()->begin,
+                                                tok.begin);
       }
     }
 
@@ -122,7 +128,7 @@ namespace tosuto {
         if (exp.has_value()) ret_val = exp.value();
 
         return std::make_shared<ret_node>(ret_val, cur.begin,
-                            ret_val ? ret_val->end : cur.end);
+                                          ret_val ? ret_val->end : cur.end);
       }
       case tok_type::key_next: {
         token cur = tok;
@@ -140,7 +146,9 @@ namespace tosuto {
           return expr();
         } else {
           auto fn = tosuto_unwrap(expr());
-          return std::make_shared<decorated_node>(decor, fn, decor.front()->begin, tok.begin);
+          return std::make_shared<decorated_node>(decor, fn,
+                                                  decor.front()->begin,
+                                                  tok.begin);
         }
       }
     }
@@ -173,7 +181,7 @@ namespace tosuto {
       {tok_type::div_assign, {tok_type::div}},
       {tok_type::mod_assign, {tok_type::mod}},
       {tok_type::sub_assign, {tok_type::sub}},
-      {tok_type::assign, std::nullopt}
+      {tok_type::assign,     std::nullopt}
     };
 
   std::expected<std::shared_ptr<node>, std::string> parser::assign() {
@@ -187,7 +195,8 @@ namespace tosuto {
       if (secondary.has_value()) {
         lhs = std::make_shared<bin_op_node>(
           lhs,
-          std::make_shared<bin_op_node>(lhs, rhs, secondary.value(), begin, end),
+          std::make_shared<bin_op_node>(lhs, rhs, secondary.value(), begin,
+                                        end),
           tok_type::assign,
           begin, end);
         continue;
@@ -204,7 +213,8 @@ namespace tosuto {
     while (tok.type == tok_type::sym_or) {
       advance();
       auto rhs = tosuto_unwrap(sym_and());
-      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_or, lhs->begin, rhs->end);
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_or,
+                                          lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -215,7 +225,8 @@ namespace tosuto {
     while (tok.type == tok_type::sym_and) {
       advance();
       auto rhs = tosuto_unwrap(comp());
-      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_and, lhs->begin, rhs->end);
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_and,
+                                          lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -280,13 +291,16 @@ namespace tosuto {
         if (lhs->type == node_type::bin_op) {
           auto bin_op = tosuto_dyn_cast(bin_op_node*, lhs.get());
           bin_op->rhs = std::make_shared<un_op_node>(bin_op->rhs, tok_type::mul,
-                                       bin_op->rhs->begin, tok.begin);
+                                                     bin_op->rhs->begin,
+                                                     tok.begin);
         } else {
-          lhs = std::make_shared<un_op_node>(lhs, tok_type::mul, lhs->begin, tok.begin);
+          lhs = std::make_shared<un_op_node>(lhs, tok_type::mul, lhs->begin,
+                                             tok.begin);
         }
       } else {
         auto rhs = tosuto_unwrap(thing);
-        lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
+        lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin,
+                                            rhs->end);
       }
     }
 
@@ -312,7 +326,8 @@ namespace tosuto {
       if (rhs->type != node_type::object)
         return std::unexpected{"Expected object on rhs of with expr!"};
 
-      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::key_with, lhs->begin, rhs->end);
+      lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::key_with,
+                                          lhs->begin, rhs->end);
     }
 
     return lhs;
@@ -358,7 +373,8 @@ namespace tosuto {
   std::expected<std::shared_ptr<node>, std::string> parser::call() {
     pos begin = tok.begin;
     std::shared_ptr<node> body = tosuto_unwrap(atom());
-    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot || tok.type == tok_type::colon || tok.type == tok_type::l_square) {
+    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot ||
+           tok.type == tok_type::colon || tok.type == tok_type::l_square) {
       auto type = tok.type;
       advance();
       switch (type) {
@@ -374,7 +390,8 @@ namespace tosuto {
 
           advance();
           body = std::make_shared<call_node>(
-            body, args, false, begin, args.empty() ? body->end : args.back()->end);
+            body, args, false, begin,
+            args.empty() ? body->end : args.back()->end);
           break;
         }
         case tok_type::l_square: {
@@ -387,7 +404,8 @@ namespace tosuto {
         case tok_type::dot: {
           token id = tosuto_unwrap(expect(tok_type::id));
 
-          body = std::make_shared<field_get_node>(body, id.lexeme, begin, id.end);
+          body = std::make_shared<field_get_node>(body, id.lexeme, begin,
+                                                  id.end);
           break;
         }
         case tok_type::colon: {
@@ -404,7 +422,8 @@ namespace tosuto {
 
           advance();
           body = std::make_shared<member_call_node>(
-            body, field.lexeme, args, begin, args.empty() ? body->end : args.back()->end);
+            body, field.lexeme, args, begin,
+            args.empty() ? body->end : args.back()->end);
           break;
         }
         default: std::unreachable();
@@ -429,7 +448,8 @@ namespace tosuto {
         return std::make_shared<number_node>(value, tok.begin, tok.end);;
       }
       case tok_type::string: {
-        auto nod = std::make_shared<string_node>(tok.lexeme, tok.begin, tok.end);
+        auto nod = std::make_shared<string_node>(tok.lexeme, tok.begin,
+                                                 tok.end);
         advance();
         return nod;
       }
@@ -458,7 +478,8 @@ namespace tosuto {
         return function();
       }
       case tok_type::id: {
-        auto nod = std::make_shared<field_get_node>(nullptr, tok.lexeme, begin, tok.begin);
+        auto nod = std::make_shared<field_get_node>(nullptr, tok.lexeme, begin,
+                                                    tok.begin);
         advance();
         return nod;
       }
@@ -477,7 +498,8 @@ namespace tosuto {
             advance();
             auto val = tosuto_unwrap(expr());
             tosuto_discard(expect(tok_type::r_square));
-            return std::make_unique<sized_array_node>(size, val, begin, tok.begin);
+            return std::make_unique<sized_array_node>(size, val, begin,
+                                                      tok.begin);
           }
 
           consume(tok_type::comma);
@@ -518,15 +540,18 @@ namespace tosuto {
       }
       case tok_type::key_false: {
         advance();
-        return std::make_shared<kw_literal_node>(tok_type::key_false, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_false, begin,
+                                                 tok.begin);
       }
       case tok_type::key_true: {
         advance();
-        return std::make_shared<kw_literal_node>(tok_type::key_true, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_true, begin,
+                                                 tok.begin);
       }
       case tok_type::key_nil: {
         advance();
-        return std::make_shared<kw_literal_node>(tok_type::key_nil, begin, tok.begin);
+        return std::make_shared<kw_literal_node>(tok_type::key_nil, begin,
+                                                 tok.begin);
       }
       default:
         return std::unexpected(
@@ -636,7 +661,8 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  block_node::block_node(std::vector<std::shared_ptr<node>> exprs, pos begin, pos end) :
+  block_node::block_node(std::vector<std::shared_ptr<node>> exprs, pos begin,
+                         pos end) :
     exprs(std::move(exprs)),
     node(node_type::block, begin, end) {}
 
@@ -664,7 +690,8 @@ namespace tosuto {
     return ss.str();
   }
 
-  call_node::call_node(std::shared_ptr<node> callee, std::vector<std::shared_ptr<node>> args, bool is_member,
+  call_node::call_node(std::shared_ptr<node> callee,
+                       std::vector<std::shared_ptr<node>> args, bool is_member,
                        pos begin,
                        pos end) :
     callee(std::move(callee)),
@@ -695,7 +722,8 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  un_op_node::un_op_node(std::shared_ptr<node> target, tok_type op, pos begin, pos end) :
+  un_op_node::un_op_node(std::shared_ptr<node> target, tok_type op, pos begin,
+                         pos end) :
     target(std::move(target)),
     op(op),
     node(node_type::un_op, begin, end) {}
@@ -711,7 +739,8 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  bin_op_node::bin_op_node(std::shared_ptr<node> lhs, std::shared_ptr<node> rhs, tok_type op, pos begin,
+  bin_op_node::bin_op_node(std::shared_ptr<node> lhs, std::shared_ptr<node> rhs,
+                           tok_type op, pos begin,
                            pos end) :
     lhs(std::move(lhs)),
     rhs(std::move(rhs)),
@@ -763,7 +792,8 @@ namespace tosuto {
     return ss.str();
   }
 
-  field_get_node::field_get_node(std::shared_ptr<node> target, std::string field, pos begin,
+  field_get_node::field_get_node(std::shared_ptr<node> target,
+                                 std::string field, pos begin,
                                  pos end) :
     target(std::move(target)),
     field(std::move(field)),
@@ -781,7 +811,8 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  var_def_node::var_def_node(std::string name, std::shared_ptr<node> value, pos begin, pos end)
+  var_def_node::var_def_node(std::string name, std::shared_ptr<node> value,
+                             pos begin, pos end)
     :
     name(std::move(name)),
     value(std::move(value)),
@@ -798,7 +829,8 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  if_node::if_node(decltype(cases) cases, std::shared_ptr<node> else_case, pos begin, pos end) :
+  if_node::if_node(decltype(cases) cases, std::shared_ptr<node> else_case,
+                   pos begin, pos end) :
     cases(std::move(cases)),
     else_case(std::move(else_case)),
     node(node_type::if_stmt, begin, end) {}
@@ -859,7 +891,8 @@ namespace tosuto {
     return "break";
   }
 
-  range_node::range_node(std::shared_ptr<node> start, std::shared_ptr<node> finish, pos begin, pos end) :
+  range_node::range_node(std::shared_ptr<node> start,
+                         std::shared_ptr<node> finish, pos begin, pos end) :
     start(std::move(start)),
     finish(std::move(finish)),
     node(node_type::range, begin, end) {}
@@ -895,7 +928,8 @@ namespace tosuto {
     node(node_type::for_loop, begin, end) {}
 
   anon_fn_def_node::anon_fn_def_node(
-    std::vector<std::pair<std::string, bool>> args, std::shared_ptr<node> body, pos begin,
+    std::vector<std::pair<std::string, bool>> args, std::shared_ptr<node> body,
+    pos begin,
     pos end) :
     args(std::move(args)), body(std::move(body)),
     node(node_type::anon_fn_def, begin, end) {}
@@ -953,11 +987,15 @@ namespace tosuto {
         << std::string(indent * 2, ' ') << '}').str();
   }
 
-  decorated_node::decorated_node(std::vector<std::shared_ptr<node>> decos, std::shared_ptr<node> target,
+  decorated_node::decorated_node(std::vector<std::shared_ptr<node>> decos,
+                                 std::shared_ptr<node> target,
                                  pos begin, pos end) : decos(std::move(decos)),
-                                                       target(std::move(target)),
-                                                       node(node_type::decorated, begin,
-                                                            end) {}
+                                                       target(
+                                                         std::move(target)),
+                                                       node(
+                                                         node_type::decorated,
+                                                         begin,
+                                                         end) {}
 
   std::string decorated_node::pretty(int indent) const {
     std::string ind = std::string((indent + 1) * 2, ' ');
@@ -996,10 +1034,10 @@ namespace tosuto {
                                      std::string field,
                                      std::vector<std::shared_ptr<node>> args,
                                      pos begin, pos end) :
-                                     callee(std::move(callee)),
-                                     field(std::move(field)),
-                                     args(std::move(args)),
-                                     node(node_type::member_call, begin, end) {
+    callee(std::move(callee)),
+    field(std::move(field)),
+    args(std::move(args)),
+    node(node_type::member_call, begin, end) {
 
   }
 
@@ -1027,12 +1065,17 @@ namespace tosuto {
   }
 
   array_node::array_node(std::vector<std::shared_ptr<node>> exprs, pos begin,
-                         pos end) : exprs(std::move(exprs)), node(node_type::array, begin, end) {
+                         pos end) : exprs(std::move(exprs)),
+                                    node(node_type::array, begin, end) {
 
   }
 
-  sized_array_node::sized_array_node(std::shared_ptr<node> size, std::shared_ptr<node> val, pos begin,
-                                     pos end) : size(std::move(size)), val(std::move(val)), node(node_type::sized_array, begin, end) {
+  sized_array_node::sized_array_node(std::shared_ptr<node> size,
+                                     std::shared_ptr<node> val, pos begin,
+                                     pos end) : size(std::move(size)),
+                                                val(std::move(val)),
+                                                node(node_type::sized_array,
+                                                     begin, end) {
 
   }
 

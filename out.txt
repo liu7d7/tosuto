@@ -1,102 +1,80 @@
 block: [
-  var_def_node: {
-    name: x,
-    value: number_node: 0.000000,
-  },
-  var_def_node: {
-    name: res,
-    value: number_node: 0.000000,
-  },
-  for_node: {
-    id: i,
-    iterable: range_node: {
-      start: number_node: 0.000000,
-      finish: number_node: 100000000.000000,
-    },
-    body: block: [
-      var_def_node: {
-        name: mod,
-        value: bin_op_node: {
-          op: mod,
+  fn_def_node: {
+    name: ﾌｨﾎﾞ,
+    args: [ﾜ],
+    body: bin_op_node: {
+      op: or,
+      lhs: bin_op_node: {
+        op: and,
+        lhs: bin_op_node: {
+          op: less_than,
           lhs: field_get_node: {
             target: nil,
-            field: i,
+            field: ﾜ,
           }
-          rhs: number_node: 4.000000
-        },
-      },
-      if_stmt_node: {
-        cases: [
-          case{
-            cond: bin_op_node: {
-              op: eq,
+          rhs: number_node: 2.000000
+        }
+        rhs: field_get_node: {
+          target: nil,
+          field: ﾜ,
+        }
+      }
+      rhs: bin_op_node: {
+        op: add,
+        lhs: call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: ﾌｨﾎﾞ,
+          },
+          is_member: 0,
+          args: [
+            bin_op_node: {
+              op: sub,
               lhs: field_get_node: {
                 target: nil,
-                field: mod,
-              }
-              rhs: number_node: 0.000000
-            }
-            body: block: [
-              bin_op_node: {
-                op: assign,
-                lhs: field_get_node: {
-                  target: nil,
-                  field: res,
-                }
-                rhs: number_node: 30.000000
-              },
-            ]
-          }          case{
-            cond: bin_op_node: {
-              op: eq,
-              lhs: field_get_node: {
-                target: nil,
-                field: mod,
-              }
-              rhs: number_node: 1.000000
-            }
-            body: block: [
-              bin_op_node: {
-                op: assign,
-                lhs: field_get_node: {
-                  target: nil,
-                  field: res,
-                }
-                rhs: number_node: 40.000000
-              },
-            ]
-          }          case{
-            cond: bin_op_node: {
-              op: eq,
-              lhs: field_get_node: {
-                target: nil,
-                field: mod,
+                field: ﾜ,
               }
               rhs: number_node: 2.000000
             }
-            body: block: [
-              bin_op_node: {
-                op: assign,
-                lhs: field_get_node: {
-                  target: nil,
-                  field: res,
-                }
-                rhs: number_node: 50.000000
-              },
-            ]
-          }
-        ],
-        other: block: [
-          bin_op_node: {
-            op: assign,
-            lhs: field_get_node: {
-              target: nil,
-              field: res,
-            }
-            rhs: number_node: 60.000000
+          ],
+        }
+        rhs: call_node: {
+          callee: field_get_node: {
+            target: nil,
+            field: ﾌｨﾎﾞ,
           },
-        ]
-      },
+          is_member: 0,
+          args: [
+            bin_op_node: {
+              op: sub,
+              lhs: field_get_node: {
+                target: nil,
+                field: ﾜ,
+              }
+              rhs: number_node: 1.000000
+            }
+          ],
+        }
+      }
+    }
+  },
+  call_node: {
+    callee: field_get_node: {
+      target: nil,
+      field: log,
+    },
+    is_member: 0,
+    args: [
+      call_node: {
+        callee: field_get_node: {
+          target: nil,
+          field: ﾌｨﾎﾞ,
+        },
+        is_member: 0,
+        args: [
+          number_node: 35.000000
+        ],
+      }
     ],
   },
 ]

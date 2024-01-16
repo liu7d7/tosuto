@@ -1,11 +1,6 @@
 // lua-like typing system, stack-based bytecode vm in C++
 
-x := 0
-res := 0
-for i : 0..100000000 {
-  mod := i % 4
-  if mod == 0 { res = 30 }
-  elif mod == 1 { res = 40 }
-  elif mod == 2 { res = 50 }
-  else { res = 60 }
-}
+ﾌｨﾎﾞ : ﾜ -> ﾜ < 2 & ﾜ | ﾌｨﾎﾞ(ﾜ - 2) + ﾌｨﾎﾞ(ﾜ - 1)
+
+log(ﾌｨﾎﾞ(35))
+

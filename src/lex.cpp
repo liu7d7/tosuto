@@ -17,7 +17,7 @@ namespace tosuto {
       {U"false", tok_type::key_false},
       {U"true",  tok_type::key_true},
       {U"nil",   tok_type::key_nil},
-      {U"of",   tok_type::key_of},
+      {U"of",    tok_type::key_of},
     };
 
   static std::unordered_map<char32_t, tok_type> symbols =
@@ -269,7 +269,8 @@ namespace tosuto {
            || ch == '_'
            || ch == '$'
            || (ch >= 0xff61 && ch <= 0xff9F) // half-width katakana
-           || (ch >= 0x0300 && ch <= 0x036f) // diacritics (combining characters)
+           ||
+           (ch >= 0x0300 && ch <= 0x036f) // diacritics (combining characters)
            || (ch >= 128 && ch <= 255); // diacritics (extended ascii)
   }
 

@@ -4,7 +4,9 @@
 #include "interpret.h"
 
 namespace tosuto::tree {
-  value::value(value_type val, decltype(decos) decos) : val(std::move(val)), decos(std::move(decos)) {}
+  value::value(value_type val, decltype(decos) decos) : val(std::move(val)),
+                                                        decos(
+                                                          std::move(decos)) {}
 
   std::string value::type_name() const {
     switch (val.index()) {
@@ -176,7 +178,8 @@ namespace tosuto::tree {
 
   bool value::is_truthy() {
     if (is<bool>()) return get<bool>();
-    if (is<num>()) return fabs(get<num>()) < std::numeric_limits<num>::epsilon();
+    if (is<num>())
+      return fabs(get<num>()) < std::numeric_limits<num>::epsilon();
     if (is<nil>()) return false;
     return true;
   }

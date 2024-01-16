@@ -30,7 +30,7 @@ namespace tosuto::tree {
 
     template<typename F>
     inline interpret_result find_first(F&& pred) {
-      for (auto const& [k, v] : vals) {
+      for (auto const& [k, v]: vals) {
         if (pred(k, v)) return v;
       }
 

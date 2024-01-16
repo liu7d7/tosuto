@@ -120,7 +120,8 @@ namespace tosuto {
     std::shared_ptr<node> size;
     std::shared_ptr<node> val;
 
-    sized_array_node(std::shared_ptr<node> size, std::shared_ptr<node> val, pos begin, pos end);
+    sized_array_node(std::shared_ptr<node> size, std::shared_ptr<node> val,
+                     pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
@@ -144,10 +145,10 @@ namespace tosuto {
     std::vector<std::shared_ptr<node>> args;
 
     member_call_node(std::shared_ptr<node> callee,
-              std::string field,
-              std::vector<std::shared_ptr<node>> args,
-              pos begin,
-              pos end);
+                     std::string field,
+                     std::vector<std::shared_ptr<node>> args,
+                     pos begin,
+                     pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };

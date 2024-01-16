@@ -23,12 +23,13 @@ namespace tosuto::vm {
     explicit compiler(value::fn::type type);
 
     [[nodiscard]] inline chunk& cur_ch() /* mutating */ {
-      return *fn.ch;
+      return fn.ch->first;
     }
 
     std::expected<void, std::string> number(node* n);
 
     std::expected<void, std::string> bin_op(node* n);
+
     std::expected<void, std::string> un_op(node* n);
 
     std::expected<void, std::string> block(node* n);

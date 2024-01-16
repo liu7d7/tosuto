@@ -5,7 +5,6 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
-#include <utility>
 #include <expected>
 #include <source_location>
 #include <variant>
@@ -151,7 +150,8 @@ namespace tosuto {
     }
 
     inline interned_string operator+(interned_string const& other) const {
-      return interned_string{backing_array[index].first + backing_array[other.index].first};
+      return interned_string{
+        backing_array[index].first + backing_array[other.index].first};
     }
 
     inline operator std::string const&() const {
@@ -187,15 +187,17 @@ namespace tosuto {
   template<typename T>
   struct dummy_expected {
     T self;
+
     explicit dummy_expected(T&& thing) : self(std::move(thing)) {}
-    inline T& operator *() {
+
+    inline T& operator*() {
       return self;
     }
   };
 
   template<>
   struct dummy_expected<void> {
-    inline void operator *() {
+    inline void operator*() {
     }
   };
 }
@@ -203,6 +205,7 @@ namespace tosuto {
 template<>
 struct std::hash<tosuto::interned_string> {
   static constexpr auto hasher = std::hash<size_t>();
+
   size_t operator()(tosuto::interned_string const& str) const {
     return hasher(str.index);
   }

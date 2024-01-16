@@ -10,7 +10,7 @@ namespace tosuto::vm {
       case 2: {
         std::string s = "{";
         auto& obj = get<object>();
-        for (auto const& [k, v] : *obj) {
+        for (auto const& [k, v]: *obj) {
           s += k;
           s += "=";
           s += v.to_string();
@@ -25,12 +25,12 @@ namespace tosuto::vm {
       }
       case 4: return "nil";
       case 5: return get<str>();
-      case 6: return "<fn " + std::string(get<fn>().name) + ">";
+      case 6: return "<fn " + std::string(get<fn>().ch->first.name) + ">";
       case 7: return "<native fn>";
       case 8: {
         std::string s = "[";
         auto& obj = get<array>();
-        for (auto const& v : *obj) {
+        for (auto const& v: *obj) {
           s += v.to_string();
           s += ", ";
         }
@@ -61,7 +61,7 @@ namespace tosuto::vm {
     }
   }
 
-  value::fn::fn() : ch(std::make_shared<chunk>()), name{""}, arity() {
+  value::fn::fn() : ch{std::make_shared<std::pair<chunk, u8>>(chunk{}, 0)} {
 
   }
 }

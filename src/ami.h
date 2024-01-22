@@ -15,21 +15,21 @@
 #include <codecvt>
 #include <memory>
 
-#define tosuto_unwrap(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_unwrap_move(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_discard(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_dyn_cast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
+#define ami_unwrap(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define ami_unwrap_move(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define ami_discard(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
+#define ami_dyn_cast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
 
 #ifdef NDEBUG
-#define tosuto_unwrap_fast(exp) (*exp)
-#define tosuto_unwrap_move_fast(exp) std::move(*exp)
-#define tosuto_discard_fast(exp) void(exp)
-#define tosuto_dyn_cast_fast(type, exp) dynamic_cast<type>(exp)
+#define ami_unwrap_fast(exp) (*exp)
+#define ami_unwrap_move_fast(exp) std::move(*exp)
+#define ami_discard_fast(exp) void(exp)
+#define ami_dyn_cast_fast(type, exp) dynamic_cast<type>(exp)
 #else
-#define tosuto_unwrap_fast(exp) *(temp_storage<decltype(exp)>::held = exp, temp_storage<decltype(exp)>::held.has_value() ? *temp_storage<decltype(exp)>::held : decltype(exp)({})); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_unwrap_move_fast(exp) std::move(*(temp_storage<decltype(exp)>::held = std::move(exp), temp_storage<decltype(exp)>::held.has_value() ? std::move(*temp_storage<decltype(exp)>::held) : decltype(exp)({}))); if (!temp_storage<decltype(exp)>::held.has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_discard_fast(exp) if (!(temp_storage<decltype(exp)>::held = exp).has_value()) return std::unexpected(temp_storage<decltype(exp)>::held.error())
-#define tosuto_dyn_cast_fast(type, exp) temp_storage<type>::held = dynamic_cast<type>(exp); if (!temp_storage<type>::held) return std::unexpected("Unable to perform downcast!")
+#define ami_unwrap_fast(exp) ami_unwrap(exp)
+#define ami_unwrap_move_fast(exp) ami_unwrap_move(exp)
+#define ami_discard_fast(exp) ami_discard(exp)
+#define ami_dyn_cast_fast(type, exp) ami_dyn_cast(type, exp)
 #endif
 
 template<typename V>
@@ -111,7 +111,7 @@ Stream& operator<<
   return print_one_value_container(outputstream, adapter);
 }
 
-namespace tosuto {
+namespace ami {
   using u8 = uint8_t;
   using u16 = uint16_t;
   using u32 = uint32_t;
@@ -119,44 +119,24 @@ namespace tosuto {
   template<typename T>
   constexpr T max_of = std::numeric_limits<T>::max();
 
-  template<typename T>
-  constexpr T epsilon = std::numeric_limits<T>::epsilon();
-
   struct pos {
     size_t idx, col, row;
 
     [[nodiscard]] std::string to_string() const;
+
+    static pos synthesized;
   };
 
   struct interned_string {
     size_t index;
 
-    static std::unordered_map<std::string, size_t> map;
-    static std::vector<std::pair<std::string, size_t>> backing_array;
+    explicit interned_string(std::string const& str);
 
-    inline explicit interned_string(std::string const& str) {
-      auto it = map.find(str);
-      if (it != map.end()) {
-        index = it->second;
-      } else {
-        backing_array.emplace_back(str, std::hash<std::string>()(str));
-        index = backing_array.size() - 1;
-        map.emplace(str, index);
-      }
-    }
+    bool operator==(interned_string const& other) const;
 
-    inline bool operator==(interned_string const& other) const {
-      return index == other.index;
-    }
+    interned_string operator+(interned_string const& other) const;
 
-    inline interned_string operator+(interned_string const& other) const {
-      return interned_string{
-        backing_array[index].first + backing_array[other.index].first};
-    }
-
-    inline operator std::string const&() const {
-      return backing_array[index].first;
-    }
+    /* implicit */ operator std::string const&() const;
   };
 
   template<typename T>
@@ -200,13 +180,13 @@ namespace tosuto {
     inline void operator*() {
     }
   };
+
+  std::vector<std::string> const& get_interned_string_backing_array();
 }
 
 template<>
-struct std::hash<tosuto::interned_string> {
+struct std::hash<ami::interned_string> {
   static constexpr auto hasher = std::hash<size_t>();
 
-  size_t operator()(tosuto::interned_string const& str) const {
-    return hasher(str.index);
-  }
+  size_t operator()(ami::interned_string const& str) const noexcept;
 };

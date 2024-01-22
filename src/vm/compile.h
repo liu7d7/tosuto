@@ -3,21 +3,32 @@
 #include "vm.h"
 #include "../parse.h"
 
-namespace tosuto::vm {
-  struct local {
-    value::str name{""};
-    u8 depth{};
-
-    inline local(value::str&& name, u8 depth) : name(name), depth(depth) {}
-
-    constexpr static u8 invalid_depth = std::numeric_limits<u8>::max();
-  };
-
+namespace ami::vm {
   struct compiler {
+    struct upvalue {
+      u16 index;
+      bool is_local;
+
+      inline upvalue(u16 index, bool is_local) : index(index), is_local(is_local) {}
+    };
+
+    struct local {
+      value::str name{""};
+      u8 depth{};
+      bool is_captured;
+
+      inline local(value::str&& name, u8 depth) :
+        name(name), depth(depth), is_captured(false) {}
+
+      constexpr static u8 invalid_depth = std::numeric_limits<u8>::max();
+    };
+
+    compiler* enclosing;
     value::fn fn;
     value::fn::type fn_type;
     constexpr static u16 max_locals = std::numeric_limits<u16>::max();
     std::vector<local> locals;
+    std::vector<upvalue> upvals;
     u8 depth{};
 
     explicit compiler(value::fn::type type);
@@ -51,6 +62,7 @@ namespace tosuto::vm {
     void end_block();
 
     std::optional<u16> resolve_local(std::string const& name);
+    std::optional<u16> resolve_upval(std::string const& name);
 
     std::expected<void, std::string> if_stmt(node* n);
 
@@ -64,7 +76,7 @@ namespace tosuto::vm {
 
     std::expected<void, std::string> function(value::fn::type type, node* n);
 
-    void pop_for_exp_stmt(node* exp);
+    std::expected<void, std::string> pop_for_exp_stmt(node* exp);
 
     std::expected<void, std::string> call(node* n);
 
@@ -85,5 +97,15 @@ namespace tosuto::vm {
     std::expected<void, std::string> for_loop(node* n);
 
     std::expected<void, std::string> sized_array(node* n);
+
+    std::pair<op_code, u16> get_instr(std::string const& name);
+    std::pair<op_code, u16> set_instr(std::string const& name);
+
+    u16 add_upval(u16 idx, bool is_local);
+
+    std::expected<void, std::string> decorated(node* n);
+
+    std::expected<void, std::string>
+    decorate_fn(decorated_node* decor, std::shared_ptr<node> const& fn);
   };
 }

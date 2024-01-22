@@ -1,6 +1,0 @@
-// lua-like typing system, stack-based bytecode vm in C++
-
-ﾌｨﾎﾞ : ﾜ -> ﾜ < 2 & ﾜ | ﾌｨﾎﾞ(ﾜ - 2) + ﾌｨﾎﾞ(ﾜ - 1)
-
-log(ﾌｨﾎﾞ(35))
-

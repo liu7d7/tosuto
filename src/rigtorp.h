@@ -47,7 +47,7 @@ namespace rigtorp {
     using key_equal = KeyEqual;
     using allocator_type = Allocator;
     using reference = value_type&;
-    using const_reference = const value_type&;
+    using const_reference = value_type const&;
     using buckets = std::vector<value_type, allocator_type>;
 
     template<typename ContT, typename IterVal>
@@ -58,11 +58,11 @@ namespace rigtorp {
       using reference = value_type&;
       using iterator_category = std::forward_iterator_tag;
 
-      bool operator==(const hm_iterator& other) const {
+      bool operator==(hm_iterator const& other) const {
         return other.hm_ == hm_ && other.idx_ == idx_;
       }
 
-      bool operator!=(const hm_iterator& other) const {
+      bool operator!=(hm_iterator const& other) const {
         return !(other == *this);
       }
 
@@ -74,7 +74,7 @@ namespace rigtorp {
 
       reference operator*() const { return hm_->buckets_[idx_]; }
 
-      pointer operator->() const { return &hm_->buckets_[idx_]; }
+      pointer operator->() { return  const&hm_->buckets_[idx_]; }
 
     private:
       explicit hm_iterator(ContT* hm) : hm_(hm) { advance_past_empty(); }
@@ -82,7 +82,7 @@ namespace rigtorp {
       explicit hm_iterator(ContT* hm, size_type idx) : hm_(hm), idx_(idx) {}
 
       template<typename OtherContT, typename OtherIterVal>
-      hm_iterator(const hm_iterator<OtherContT, OtherIterVal>& other)
+      hm_iterator(hm_iterator<OtherContT, OtherIterVal> const& other)
         : hm_(other.hm_), idx_(other.idx_) {}
 
       void advance_past_empty() {
@@ -102,7 +102,7 @@ namespace rigtorp {
 
   public:
     HashMap(size_type bucket_count, key_type empty_key,
-            const allocator_type& alloc = allocator_type())
+            allocator_type const& alloc = allocator_type())
       : empty_key_(empty_key), buckets_(alloc) {
       size_t pow2 = 1;
       while (pow2 < bucket_count) {
@@ -111,7 +111,7 @@ namespace rigtorp {
       buckets_.resize(pow2, std::make_pair(empty_key_, T()));
     }
 
-    HashMap(const HashMap& other, size_type bucket_count)
+    HashMap(HashMap const& other, size_type bucket_count)
       : HashMap(bucket_count, other.empty_key_, other.get_allocator()) {
       for (auto it = other.begin(); it != other.end(); ++it) {
         insert(*it);
@@ -156,7 +156,7 @@ namespace rigtorp {
       size_ = 0;
     }
 
-    std::pair<iterator, bool> insert(const value_type& value) {
+    std::pair<iterator, bool> insert(value_type const& value) {
       return emplace_impl(value.first, value.second);
     }
 
@@ -171,10 +171,10 @@ namespace rigtorp {
 
     void erase(iterator it) { erase_impl(it); }
 
-    size_type erase(const key_type& key) { return erase_impl(key); }
+    size_type erase(key_type const& key) { return erase_impl(key); }
 
     template<typename K>
-    size_type erase(const K& x) { return erase_impl(x); }
+    size_type erase(K const& x) { return erase_impl(x); }
 
     void swap(HashMap& other) noexcept {
       std::swap(buckets_, other.buckets_);
@@ -183,38 +183,38 @@ namespace rigtorp {
     }
 
     // Lookup
-    mapped_type& at(const key_type& key) { return at_impl(key); }
+    mapped_type& at(key_type const& key) { return at_impl(key); }
 
     template<typename K>
-    mapped_type& at(const K& x) { return at_impl(x); }
+    mapped_type& at(K const& x) { return at_impl(x); }
 
-    const mapped_type& at(const key_type& key) const { return at_impl(key); }
+    mapped_type& at(const key_type const& key) const { return at_impl(key); }
 
     template<typename K>
-    const mapped_type& at(const K& x) const {
+    mapped_type& at(const K const& x) const {
       return at_impl(x);
     }
 
-    mapped_type& operator[](const key_type& key) {
+    mapped_type& operator[](key_type const& key) {
       return emplace_impl(key).first->second;
     }
 
-    size_type count(const key_type& key) const { return count_impl(key); }
+    size_type count(key_type const& key) const { return count_impl(key); }
 
     template<typename K>
-    size_type count(const K& x) const {
+    size_type count(K const& x) const {
       return count_impl(x);
     }
 
-    iterator find(const key_type& key) { return find_impl(key); }
+    iterator find(key_type const& key) { return find_impl(key); }
 
     template<typename K>
-    iterator find(const K& x) { return find_impl(x); }
+    iterator find(K const& x) { return find_impl(x); }
 
-    const_iterator find(const key_type& key) const { return find_impl(key); }
+    const_iterator find(key_type const& key) const { return find_impl(key); }
 
     template<typename K>
-    const_iterator find(const K& x) const {
+    const_iterator find(K const& x) const {
       return find_impl(x);
     }
 
@@ -243,7 +243,7 @@ namespace rigtorp {
 
   private:
     template<typename K, typename... Args>
-    std::pair<iterator, bool> emplace_impl(const K& key, Args&& ... args) {
+    std::pair<iterator, bool> emplace_impl(K& key, Args& const& ... args) {
       assert(!key_equal()(empty_key_, key) && "empty key shouldn't be used");
       reserve(size_ + 1);
       for (size_t idx = key_to_idx(key);; idx = probe_next(idx)) {
@@ -276,7 +276,7 @@ namespace rigtorp {
     }
 
     template<typename K>
-    size_type erase_impl(const K& key) {
+    size_type erase_impl(K const& key) {
       auto it = find_impl(key);
       if (it != end()) {
         erase_impl(it);
@@ -286,7 +286,7 @@ namespace rigtorp {
     }
 
     template<typename K>
-    mapped_type& at_impl(const K& key) {
+    mapped_type& at_impl(K const& key) {
       iterator it = find_impl(key);
       if (it != end()) {
         return it->second;

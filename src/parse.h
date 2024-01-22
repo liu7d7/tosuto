@@ -3,10 +3,10 @@
 #include <string>
 #include <sstream>
 #include <memory>
-#include "tosuto.h"
+#include "ami.h"
 #include "lex.h"
 
-namespace tosuto {
+namespace ami {
   enum class node_type : u8 {
     fn_def,
     block,
@@ -29,7 +29,6 @@ namespace tosuto {
     decorated,
     kw_literal,
     member_call,
-    array_idx,
     array,
     sized_array
   };
@@ -57,7 +56,6 @@ namespace tosuto {
       "decorated",
       "kw_literal",
       "member_call",
-      "array_idx",
       "array",
       "sized_array",
     };
@@ -85,17 +83,6 @@ namespace tosuto {
       std::string name,
       std::vector<std::pair<std::string, bool>> args,
       std::shared_ptr<node> body, pos begin, pos end);
-
-    [[nodiscard]] std::string pretty(int indent) const override;
-  };
-
-  struct anon_fn_def_node : public node {
-    std::vector<std::pair<std::string, bool>> args;
-    std::shared_ptr<node> body;
-
-    anon_fn_def_node(
-      std::vector<std::pair<std::string, bool>> args,
-      std::shared_ptr<node> body, pos begin, pos end);;
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };
@@ -129,10 +116,9 @@ namespace tosuto {
   struct call_node : public node {
     std::shared_ptr<node> callee;
     std::vector<std::shared_ptr<node>> args;
-    bool is_member;
 
     call_node(std::shared_ptr<node> callee,
-              std::vector<std::shared_ptr<node>> args, bool is_member,
+              std::vector<std::shared_ptr<node>> args,
               pos begin,
               pos end);
 
@@ -277,11 +263,11 @@ namespace tosuto {
   };
 
   struct deco_node : public node {
-    std::string id;
-    std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
+    std::shared_ptr<node> deco;
+    std::vector<std::shared_ptr<node>> fields;
 
-    deco_node(std::string id,
-              std::vector<std::pair<std::string, std::shared_ptr<node>>> nodes,
+    deco_node(std::shared_ptr<node> deco,
+              std::vector<std::shared_ptr<node>> nodes,
               pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
@@ -351,7 +337,7 @@ namespace tosuto {
 
     std::expected<std::shared_ptr<node>, std::string> post_unary();
 
-    std::expected<std::shared_ptr<node>, std::string> call();
+    std::expected<std::shared_ptr<node>, std::string> call(bool allow_parens = true);
 
     std::expected<std::shared_ptr<node>, std::string> atom();
 

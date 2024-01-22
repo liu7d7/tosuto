@@ -2,7 +2,7 @@
 #include "value.h"
 #include "vm.h"
 
-namespace tosuto::vm {
+namespace ami::vm {
   std::string value::to_string() const {
     switch (val.index()) {
       case 0: return std::to_string(get<num>());
@@ -38,6 +38,9 @@ namespace tosuto::vm {
         if (s.back() != '[') s = s.substr(0, s.length() - 2);
         return s + ']';
       }
+      case 9: {
+        return "upvalue";
+      }
       default: std::unreachable();
     }
   }
@@ -61,7 +64,7 @@ namespace tosuto::vm {
     }
   }
 
-  value::fn::fn() : ch{std::make_shared<std::pair<chunk, u8>>(chunk{}, 0)} {
+  value::fn::fn() : ch{std::make_shared<std::pair<chunk, u8>>(chunk{}, 0)}, upvals{nullptr} {
 
   }
 }

@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.27)
-project(tosuto)
+project(ami)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(tosuto main.cpp
-        src/tosuto.h
-        src/tosuto.cpp
+add_executable(ami main.cpp
+        src/ami.h
+        src/ami.cpp
         src/lex.h
         src/lex.cpp
         src/parse.h
@@ -13,11 +13,6 @@ add_executable(tosuto main.cpp
         src/parse.h
         src/parse.cpp
         src/parse.cpp
-        src/treewalk/interpret.h
-        src/treewalk/interpret.h
-        src/treewalk/interpret.cpp
-        src/treewalk/value.h
-        src/treewalk/value.cpp
         src/vm/vm.h
         src/vm/vm.cpp
         src/vm/compile.h
@@ -25,6 +20,9 @@ add_executable(tosuto main.cpp
         src/vm/value.h
         src/vm/value.cpp
         src/rigtorp.h
+        src/vm/serialize.h
+        src/vm/serialize.cpp
+        src/vm/deserialize.h
 )
 
-target_compile_options(tosuto PUBLIC "$<$<CONFIG:Release>:-Ofast>")
+target_compile_options(ami PUBLIC "$<$<CONFIG:Release>:-Ofast>")

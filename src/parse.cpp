@@ -4,7 +4,7 @@
 #include <memory>
 #include "parse.h"
 
-namespace tosuto {
+namespace ami {
   parser::parser(std::vector<token> toks) :
     toks(std::move(toks)),
     idx(0) {
@@ -20,7 +20,7 @@ namespace tosuto {
 
   std::expected<std::shared_ptr<node>, std::string> parser::block() {
     pos begin = tok.begin;
-    tosuto_discard(expect(tok_type::l_curly));
+    ami_discard(expect(tok_type::l_curly));
 
     std::vector<std::shared_ptr<node>> exprs;
     while (tok.type != tok_type::r_curly) {
@@ -47,11 +47,11 @@ namespace tosuto {
 
   std::expected<std::shared_ptr<node>, std::string> parser::for_loop() {
     pos begin = tok.begin;
-    tosuto_discard(expect(tok_type::key_for));
-    auto id = tosuto_unwrap(expect(tok_type::id));
-    tosuto_discard(expect(tok_type::colon));
-    auto iterable = tosuto_unwrap(expr());
-    auto body = tosuto_unwrap(block());
+    ami_discard(expect(tok_type::key_for));
+    auto id = ami_unwrap(expect(tok_type::id));
+    ami_discard(expect(tok_type::colon));
+    auto iterable = ami_unwrap(expr());
+    auto body = ami_unwrap(block());
 
     return std::make_shared<for_node>(id.lexeme, iterable, body, begin,
                                       body->end);
@@ -63,30 +63,28 @@ namespace tosuto {
     while (tok.type == tok_type::at) {
       pos begin = tok.begin;
       advance();
-      token id = tosuto_unwrap(expect(tok_type::id));
-      std::vector<std::pair<std::string, std::shared_ptr<node>>> fields;
+      auto deco = ami_unwrap(call(false));
+      std::vector<std::shared_ptr<node>> fields;
       if (tok.type == tok_type::l_paren) {
         advance();
-        while (tok.type == tok_type::id) {
-          token field_id = tosuto_unwrap(expect(tok_type::id));
-          tosuto_discard(expect(tok_type::assign));
-          auto field_val = tosuto_unwrap(expr());
+        while (tok.type != tok_type::r_paren) {
+          auto field_val = ami_unwrap(expr());
           consume(tok_type::comma);
-          fields.emplace_back(field_id.lexeme, field_val);
+          fields.emplace_back(field_val);
         }
 
-        tosuto_discard(expect(tok_type::r_paren));
+        ami_discard(expect(tok_type::r_paren));
       }
 
       decos.push_back(
-        std::make_shared<deco_node>(id.lexeme, fields, begin, tok.begin));
+        std::make_shared<deco_node>(deco, fields, begin, tok.begin));
     }
 
     return decos;
   }
 
   std::expected<std::shared_ptr<node>, std::string> parser::statement() {
-    auto decor = tosuto_unwrap(decos());
+    auto decor = ami_unwrap(decos());
     if (tok.type == tok_type::id &&
         (next.type == tok_type::colon || next.type == tok_type::l_curly ||
          next.type == tok_type::r_arrow)) {
@@ -145,7 +143,7 @@ namespace tosuto {
         if (decor.empty()) {
           return expr();
         } else {
-          auto fn = tosuto_unwrap(expr());
+          auto fn = ami_unwrap(expr());
           return std::make_shared<decorated_node>(decor, fn,
                                                   decor.front()->begin,
                                                   tok.begin);
@@ -164,10 +162,10 @@ namespace tosuto {
     }
 
     std::string id = tok.lexeme;
-    auto lhs = tosuto_unwrap(assign());
+    auto lhs = ami_unwrap(assign());
     while (tok.type == tok_type::walrus) {
       advance();
-      auto rhs = tosuto_unwrap(assign());
+      auto rhs = ami_unwrap(assign());
       lhs = std::make_shared<var_def_node>(id, rhs, lhs->begin, rhs->end);
     }
 
@@ -185,11 +183,11 @@ namespace tosuto {
     };
 
   std::expected<std::shared_ptr<node>, std::string> parser::assign() {
-    auto lhs = tosuto_unwrap(sym_or());
+    auto lhs = ami_unwrap(sym_or());
     while (assign_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap(sym_or());
+      auto rhs = ami_unwrap(sym_or());
       auto secondary = assign_ops[type];
       auto begin = lhs->begin, end = rhs->end;
       if (secondary.has_value()) {
@@ -209,10 +207,10 @@ namespace tosuto {
   }
 
   std::expected<std::shared_ptr<node>, std::string> parser::sym_or() {
-    auto lhs = tosuto_unwrap(sym_and());
+    auto lhs = ami_unwrap(sym_and());
     while (tok.type == tok_type::sym_or) {
       advance();
-      auto rhs = tosuto_unwrap(sym_and());
+      auto rhs = ami_unwrap(sym_and());
       lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_or,
                                           lhs->begin, rhs->end);
     }
@@ -221,10 +219,10 @@ namespace tosuto {
   }
 
   std::expected<std::shared_ptr<node>, std::string> parser::sym_and() {
-    auto lhs = tosuto_unwrap(comp());
+    auto lhs = ami_unwrap(comp());
     while (tok.type == tok_type::sym_and) {
       advance();
-      auto rhs = tosuto_unwrap(comp());
+      auto rhs = ami_unwrap(comp());
       lhs = std::make_shared<bin_op_node>(lhs, rhs, tok_type::sym_and,
                                           lhs->begin, rhs->end);
     }
@@ -243,11 +241,11 @@ namespace tosuto {
     };
 
   std::expected<std::shared_ptr<node>, std::string> parser::comp() {
-    auto lhs = tosuto_unwrap(add());
+    auto lhs = ami_unwrap(add());
     while (comp_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap(add());
+      auto rhs = ami_unwrap(add());
       lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
     }
 
@@ -261,11 +259,11 @@ namespace tosuto {
     };
 
   std::expected<std::shared_ptr<node>, std::string> parser::add() {
-    auto lhs = tosuto_unwrap(mul());
+    auto lhs = ami_unwrap(mul());
     while (add_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto rhs = tosuto_unwrap(mul());
+      auto rhs = ami_unwrap(mul());
       lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin, rhs->end);
     }
 
@@ -280,7 +278,7 @@ namespace tosuto {
     };
 
   std::expected<std::shared_ptr<node>, std::string> parser::mul() {
-    auto lhs = tosuto_unwrap(range());
+    auto lhs = ami_unwrap(range());
     while (mul_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
@@ -289,7 +287,7 @@ namespace tosuto {
       if (!thing.has_value()) {
         set_state(s);
         if (lhs->type == node_type::bin_op) {
-          auto bin_op = tosuto_dyn_cast(bin_op_node*, lhs.get());
+          auto bin_op = ami_dyn_cast(bin_op_node*, lhs.get());
           bin_op->rhs = std::make_shared<un_op_node>(bin_op->rhs, tok_type::mul,
                                                      bin_op->rhs->begin,
                                                      tok.begin);
@@ -298,7 +296,7 @@ namespace tosuto {
                                              tok.begin);
         }
       } else {
-        auto rhs = tosuto_unwrap(thing);
+        auto rhs = ami_unwrap(thing);
         lhs = std::make_shared<bin_op_node>(lhs, rhs, type, lhs->begin,
                                             rhs->end);
       }
@@ -308,10 +306,10 @@ namespace tosuto {
   }
 
   std::expected<std::shared_ptr<node>, std::string> parser::range() {
-    std::shared_ptr<node> lhs = tosuto_unwrap(with());
+    std::shared_ptr<node> lhs = ami_unwrap(with());
     if (tok.type == tok_type::range) {
       advance();
-      std::shared_ptr<node> rhs = tosuto_unwrap(with());
+      std::shared_ptr<node> rhs = ami_unwrap(with());
       lhs = std::make_shared<range_node>(lhs, rhs, lhs->begin, rhs->end);
     }
 
@@ -319,10 +317,10 @@ namespace tosuto {
   }
 
   std::expected<std::shared_ptr<node>, std::string> parser::with() {
-    std::shared_ptr<node> lhs = tosuto_unwrap(pre_unary());
+    std::shared_ptr<node> lhs = ami_unwrap(pre_unary());
     if (tok.type == tok_type::key_with) {
       advance();
-      std::shared_ptr<node> rhs = tosuto_unwrap(pre_unary());
+      std::shared_ptr<node> rhs = ami_unwrap(pre_unary());
       if (rhs->type != node_type::object)
         return std::unexpected{"Expected object on rhs of with expr!"};
 
@@ -345,7 +343,7 @@ namespace tosuto {
     if (pre_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
-      auto body = tosuto_unwrap(post_unary());
+      auto body = ami_unwrap(post_unary());
       return std::make_shared<un_op_node>(body, type, begin, body->end);
     }
 
@@ -360,7 +358,7 @@ namespace tosuto {
 
   std::expected<std::shared_ptr<node>, std::string> parser::post_unary() {
     pos begin = tok.begin;
-    auto body = tosuto_unwrap(call());
+    auto body = ami_unwrap(call());
     if (post_unary_ops.contains(tok.type)) {
       tok_type type = tok.type;
       advance();
@@ -370,10 +368,10 @@ namespace tosuto {
     return body;
   }
 
-  std::expected<std::shared_ptr<node>, std::string> parser::call() {
+  std::expected<std::shared_ptr<node>, std::string> parser::call(bool allow_parens /* = true */) {
     pos begin = tok.begin;
-    std::shared_ptr<node> body = tosuto_unwrap(atom());
-    while (tok.type == tok_type::l_paren || tok.type == tok_type::dot ||
+    std::shared_ptr<node> body = ami_unwrap(atom());
+    while ((tok.type == tok_type::l_paren && allow_parens) || tok.type == tok_type::dot ||
            tok.type == tok_type::colon || tok.type == tok_type::l_square) {
       auto type = tok.type;
       advance();
@@ -381,7 +379,7 @@ namespace tosuto {
         case tok_type::l_paren: {
           std::vector<std::shared_ptr<node>> args;
           while (tok.type != tok_type::r_paren) {
-            auto exp = tosuto_unwrap(expr());
+            auto exp = ami_unwrap(expr());
             args.push_back(exp);
             if (tok.type == tok_type::comma) {
               advance();
@@ -390,30 +388,29 @@ namespace tosuto {
 
           advance();
           body = std::make_shared<call_node>(
-            body, args, false, begin,
-            args.empty() ? body->end : args.back()->end);
+            body, args, begin, args.empty() ? body->end : args.back()->end);
           break;
         }
         case tok_type::l_square: {
-          auto index = tosuto_unwrap(expr());
-          tosuto_discard(expect(tok_type::r_square));
+          auto index = ami_unwrap(expr());
+          ami_discard(expect(tok_type::r_square));
           body = std::make_shared<bin_op_node>(
             body, index, tok_type::l_square, begin, index->end);
           break;
         }
         case tok_type::dot: {
-          token id = tosuto_unwrap(expect(tok_type::id));
+          token id = ami_unwrap(expect(tok_type::id));
 
           body = std::make_shared<field_get_node>(body, id.lexeme, begin,
                                                   id.end);
           break;
         }
         case tok_type::colon: {
-          auto field = tosuto_unwrap(expect(tok_type::id));
-          tosuto_discard(expect(tok_type::l_paren));
+          auto field = ami_unwrap(expect(tok_type::id));
+          ami_discard(expect(tok_type::l_paren));
           std::vector<std::shared_ptr<node>> args;
           while (tok.type != tok_type::r_paren) {
-            auto exp = tosuto_unwrap(expr());
+            auto exp = ami_unwrap(expr());
             args.push_back(exp);
             if (tok.type == tok_type::comma) {
               advance();
@@ -438,8 +435,8 @@ namespace tosuto {
     switch (tok.type) {
       case tok_type::l_paren: {
         advance();
-        auto exp = tosuto_unwrap(expr());
-        tosuto_discard(expect(tok_type::r_paren));
+        auto exp = ami_unwrap(expr());
+        ami_discard(expect(tok_type::r_paren));
         return exp;
       }
       case tok_type::number: {
@@ -456,20 +453,20 @@ namespace tosuto {
       case tok_type::key_if: {
         std::vector<std::pair<std::shared_ptr<node>, std::shared_ptr<node>>> cases;
         advance();
-        auto exp = tosuto_unwrap(expr());
-        auto body = tosuto_unwrap(block());
+        auto exp = ami_unwrap(expr());
+        auto body = ami_unwrap(block());
         cases.emplace_back(exp, body);
         while (tok.type == tok_type::key_elif) {
           advance();
-          exp = tosuto_unwrap(expr());
-          body = tosuto_unwrap(block());
+          exp = ami_unwrap(expr());
+          body = ami_unwrap(block());
           cases.emplace_back(exp, body);
         }
 
         std::shared_ptr<node> other = nullptr;
         if (tok.type == tok_type::key_else) {
           advance();
-          other = tosuto_unwrap(block());
+          other = ami_unwrap(block());
         }
 
         return std::make_shared<if_node>(cases, other, begin, tok.begin);
@@ -492,12 +489,12 @@ namespace tosuto {
         }
 
         {
-          auto size = tosuto_unwrap(expr());
+          auto size = ami_unwrap(expr());
           array.emplace_back(size);
           if (tok.type == tok_type::semicolon) {
             advance();
-            auto val = tosuto_unwrap(expr());
-            tosuto_discard(expect(tok_type::r_square));
+            auto val = ami_unwrap(expr());
+            ami_discard(expect(tok_type::r_square));
             return std::make_unique<sized_array_node>(size, val, begin,
                                                       tok.begin);
           }
@@ -506,7 +503,7 @@ namespace tosuto {
         }
 
         while (tok.type != tok_type::r_square) {
-          auto val = tosuto_unwrap(expr());
+          auto val = ami_unwrap(expr());
           array.emplace_back(val);
           consume(tok_type::comma);
         }
@@ -524,18 +521,18 @@ namespace tosuto {
           advance();
 
           if (tok.type == tok_type::colon) {
-            auto body = tosuto_unwrap(function());
+            auto body = ami_unwrap(function());
             fields.emplace_back(id, body);
           } else {
-            tosuto_discard(expect(tok_type::assign));
-            auto body = tosuto_unwrap(expr());
+            ami_discard(expect(tok_type::assign));
+            auto body = ami_unwrap(expr());
             fields.emplace_back(id, body);
           }
 
           consume(tok_type::comma);
         }
 
-        tosuto_discard(expect(tok_type::r_object));
+        ami_discard(expect(tok_type::r_object));
         return std::make_shared<object_node>(fields, begin, tok.begin);
       }
       case tok_type::key_false: {
@@ -605,12 +602,12 @@ namespace tosuto {
 
     if (tok.type == tok_type::r_arrow) {
       advance();
-      auto body = tosuto_unwrap(expr());
+      auto body = ami_unwrap(expr());
       return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
     }
 
-    tosuto_discard(expect(tok_type::l_curly, false));
-    auto body = tosuto_unwrap(block());
+    ami_discard(expect(tok_type::l_curly, false));
+    auto body = ami_unwrap(block());
     return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
   }
 
@@ -691,12 +688,11 @@ namespace tosuto {
   }
 
   call_node::call_node(std::shared_ptr<node> callee,
-                       std::vector<std::shared_ptr<node>> args, bool is_member,
+                       std::vector<std::shared_ptr<node>> args,
                        pos begin,
                        pos end) :
     callee(std::move(callee)),
     args(std::move(args)),
-    is_member(is_member),
     node(node_type::call, begin, end) {}
 
   std::string call_node::pretty(int indent) const {
@@ -717,7 +713,6 @@ namespace tosuto {
       std::stringstream()
         << "call_node: {\n"
         << ind << "callee: " << callee->pretty(indent + 1) << ",\n"
-        << ind << "is_member: " << std::to_string(is_member) << ",\n"
         << ind << "args: [\n" << arg_str << '\n' << ind << ']' << ",\n"
         << std::string(indent * 2, ' ') << '}').str();
   }
@@ -927,37 +922,9 @@ namespace tosuto {
     body(std::move(body)),
     node(node_type::for_loop, begin, end) {}
 
-  anon_fn_def_node::anon_fn_def_node(
-    std::vector<std::pair<std::string, bool>> args, std::shared_ptr<node> body,
-    pos begin,
-    pos end) :
-    args(std::move(args)), body(std::move(body)),
-    node(node_type::anon_fn_def, begin, end) {}
-
-  std::string anon_fn_def_node::pretty(int indent) const {
-    std::string ind = std::string((indent + 1) * 2, ' ');
-    std::string arg_str;
-    for (auto const& it: args) {
-      arg_str += it.first;
-      if (it.second) arg_str += "*";
-      arg_str += ", ";
-    }
-
-    if (!arg_str.empty()) {
-      arg_str = arg_str.substr(0, arg_str.length() - 2);
-    }
-
-    return (
-      std::stringstream()
-        << "anon_fn_def_node: {\n"
-        << ind << "args: [" << arg_str << ']' << ",\n"
-        << ind << "body: " << body->pretty(indent + 1) << '\n'
-        << std::string(indent * 2, ' ') << '}').str();
-  }
-
-  deco_node::deco_node(std::string id,
-                       std::vector<std::pair<std::string, std::shared_ptr<node>>> nodes,
-                       pos begin, pos end) : id(std::move(id)),
+  deco_node::deco_node(std::shared_ptr<node> deco,
+                       std::vector<std::shared_ptr<node>> nodes,
+                       pos begin, pos end) : deco(std::move(deco)),
                                              fields(std::move(nodes)),
                                              node(node_type::deco, begin,
                                                   end) {}
@@ -968,9 +935,7 @@ namespace tosuto {
     for (auto const& it: fields) {
       arg_str += ind;
       arg_str += "  ";
-      arg_str += it.first;
-      arg_str += "=";
-      arg_str += it.second->pretty(indent + 2);
+      arg_str += it->pretty(indent + 2);
       arg_str += ",\n";
     }
 
@@ -982,7 +947,7 @@ namespace tosuto {
     return (
       std::stringstream()
         << "deco: {\n"
-        << ind << "id: " << id << '\n'
+        << ind << "deco: " << deco->pretty(indent + 1) << '\n'
         << ind << "fields: [" << arg_str << ']' << ",\n"
         << std::string(indent * 2, ' ') << '}').str();
   }

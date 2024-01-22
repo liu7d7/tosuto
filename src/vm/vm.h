@@ -1,12 +1,12 @@
 #pragma once
 
 #include <stack>
-#include "../tosuto.h"
+#include "../ami.h"
 #include "value.h"
 #include <utility>
 #include <variant>
 
-namespace tosuto::vm {
+namespace ami::vm {
   enum class op_code : u8 {
     ret,
     neg,
@@ -24,21 +24,21 @@ namespace tosuto::vm {
     key_nil,
     key_false,
     key_true,
-    get_global,
-    set_global,
-    def_global,
-    get_local,
-    set_local,
+    glob_g,
+    glob_s,
+    glob_d,
+    loc_g,
+    loc_s,
     jmpf,
     jmp,
     jmpf_pop,
     jmpb_pop,
     call,
-    def_prop,
-    get_prop,
-    set_prop,
-    get_idx,
-    set_idx,
+    prop_d,
+    prop_g,
+    prop_s,
+    idx_g,
+    idx_s,
     array,
     szd_arr,
     key_with,
@@ -47,14 +47,18 @@ namespace tosuto::vm {
     lit_16,
     ld_0,
     ld_1,
+    closure,
+    upval_g,
+    upval_s,
+    upval_c,
   };
 
   struct chunk {
     std::vector<u8> data;
     std::vector<value> literals;
-    std::string name;
+    value::str name;
 
-    inline explicit chunk(std::string&& name) : name(std::move(name)) {}
+    inline explicit chunk(value::str&& name) : name(std::move(name)) {}
 
     inline chunk() : name("anonymous") {}
 
@@ -132,6 +136,7 @@ namespace tosuto::vm {
     std::vector<call_frame> frames;
     std::vector<value> stack;
     std::unordered_map<value::str, value> globals;
+    upvalue* open_upvals = nullptr;
 
     inline explicit vm(value::fn& fn) : frames{call_frame{fn, 0, 0}},
                                         stack() {
@@ -149,5 +154,11 @@ namespace tosuto::vm {
     std::expected<void, std::string>
     call(value& callee, u8 arity, value*& stack_top,
          std::function<void(bool)> const& update_stack_frame);
+
+    void make_closure(value::fn& fn, u16 num_upvals);
+
+    upvalue* capture_upval(value* local);
+
+    void close_upvals(value* last);
   };
 }

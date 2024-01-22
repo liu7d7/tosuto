@@ -7,9 +7,9 @@
 #include <cmath>
 #include <expected>
 #include <span>
-#include "../tosuto.h"
+#include "../ami.h"
 
-namespace tosuto::vm {
+namespace ami::vm {
   struct chunk;
 
   struct value {
@@ -26,6 +26,7 @@ namespace tosuto::vm {
 
     struct fn {
       std::shared_ptr<std::pair<chunk, u8>> ch;
+      std::shared_ptr<struct upvalue*[]> upvals;
 
       fn();
 
@@ -69,11 +70,19 @@ namespace tosuto::vm {
 
     [[nodiscard]] bool eq(value const& other) const;
   };
+
+  struct upvalue {
+    value* loc;
+    value closed = value{value::nil{}};
+    upvalue* next = nullptr;
+
+    inline explicit upvalue(value* loc) : loc(loc) {}
+  };
 }
 
 //template<>
-//struct std::hash<tosuto::vm::value> {
-//  size_t operator()(tosuto::vm::value const& val) const {
+//struct std::hash<ami::vm::value> {
+//  size_t operator()(ami::vm::value const& val) const {
 //    switch (val.val.index()) {
 //
 //    }

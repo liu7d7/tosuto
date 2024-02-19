@@ -83,6 +83,8 @@ namespace ami {
     return decos;
   }
 
+  static const std::string call_error_tag = "call!";
+
   std::expected<std::shared_ptr<node>, std::string> parser::statement() {
     auto decor = ami_unwrap(decos());
     if (tok.type == tok_type::id &&
@@ -90,7 +92,7 @@ namespace ami {
          next.type == tok_type::r_arrow)) {
       auto fn_try = function();
       if (decor.empty()) {
-        if (!fn_try.has_value() && fn_try.error() == "call!") {
+        if (!fn_try.has_value() && fn_try.error() == call_error_tag) {
           goto expr;
         }
 
@@ -100,7 +102,7 @@ namespace ami {
 
         return fn_try.value();
       } else {
-        if (!fn_try.has_value() && fn_try.error() == "call!") {
+        if (!fn_try.has_value() && fn_try.error() == call_error_tag) {
           goto expr;
         }
 
@@ -442,7 +444,7 @@ namespace ami {
       case tok_type::number: {
         double value = std::stod(tok.lexeme);
         advance();
-        return std::make_shared<number_node>(value, tok.begin, tok.end);;
+        return std::make_shared<number_node>(value, tok.begin, tok.end);
       }
       case tok_type::string: {
         auto nod = std::make_shared<string_node>(tok.lexeme, tok.begin,
@@ -575,11 +577,11 @@ namespace ami {
 
   std::expected<std::shared_ptr<node>, std::string> parser::function() {
     using namespace std::string_literals;
-    state just_in_case = save_state();
+    state save_in_case_of_call = save_state();
 
     pos begin = tok.begin;
-    std::string id =
-      tok.type == tok_type::id ? expect(tok_type::id)->lexeme : ""s;
+    auto id = tok.type == tok_type::id ? expect(tok_type::id)->lexeme : ""s;
+    bool is_variadic = false;
 
     std::vector<std::pair<std::string, bool>> args;
     if (tok.type == tok_type::colon) {
@@ -595,20 +597,27 @@ namespace ami {
       }
 
       if (tok.type == tok_type::l_paren) {
-        set_state(just_in_case);
-        return std::unexpected{"call!"};
+        set_state(save_in_case_of_call);
+        return std::unexpected{call_error_tag};
+      }
+
+      if (tok.type == tok_type::ellipsis) {
+        advance();
+        is_variadic = true;
       }
     }
 
     if (tok.type == tok_type::r_arrow) {
       advance();
       auto body = ami_unwrap(expr());
-      return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
+      return std::make_shared<fn_def_node>(
+        id, args, body, is_variadic, begin, body->end);
     }
 
     ami_discard(expect(tok_type::l_curly, false));
     auto body = ami_unwrap(block());
-    return std::make_shared<fn_def_node>(id, args, body, begin, body->end);
+    return std::make_shared<fn_def_node>(
+      id, args, body, is_variadic, begin, body->end);
   }
 
   void parser::set_state(parser::state const& s) {
@@ -626,10 +635,12 @@ namespace ami {
 
   fn_def_node::fn_def_node(std::string name,
                            std::vector<std::pair<std::string, bool>> args,
-                           std::shared_ptr<node> body, pos begin, pos end) :
+                           std::shared_ptr<node> body,
+                           bool is_variadic, pos begin, pos end) :
     name(std::move(name)),
     args(std::move(args)),
     body(std::move(body)),
+    is_variadic(is_variadic),
     node(node_type::fn_def, begin, end) {
     if (this->name.empty()) {
       this->type = node_type::anon_fn_def;

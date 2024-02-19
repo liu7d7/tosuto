@@ -25,8 +25,8 @@ namespace ami::vm {
       }
       case 4: return "nil";
       case 5: return get<str>();
-      case 6: return "<fn " + std::string(get<fn>().ch->first.name) + ">";
-      case 7: return "<native fn>";
+      case 6: return "<function " + std::string(get<function>().desc->chunk.name) + ">";
+      case 7: return "<native function>";
       case 8: {
         std::string s = "[";
         auto& obj = get<array>();
@@ -64,7 +64,7 @@ namespace ami::vm {
     }
   }
 
-  value::fn::fn() : ch{std::make_shared<std::pair<chunk, u8>>(chunk{}, 0)}, upvals{nullptr} {
+  value::function::function() : desc{std::make_shared<fn_desc>(chunk{}, 0xff, std::nullopt)}, upvals{nullptr} {
 
   }
 }

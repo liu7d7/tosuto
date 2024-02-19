@@ -203,7 +203,7 @@ namespace ami::vm {
     size_t loop_jmp = emit_jump(op_code::jmpb_pop);
     u16 jmp = loop_jmp - block_start + 2;
     cur_ch().data[loop_jmp] = u8(jmp & 0xff);
-    cur_ch().data[loop_jmp + 1] = u8((jmp >> 8) & 0xff);
+    cur_ch().data[loop_jmp + 1] = u8(jmp >> 8 & 0xff);
 
     for (auto break_jmp: break_jmps) {
       ami_discard(patch_jump(break_jmp));
@@ -240,7 +240,7 @@ namespace ami::vm {
   }
 
   std::expected<void, std::string> compiler::anon_fn_def(node* n) {
-    ami_discard(function(value::fn::type::fn, n));
+    ami_discard(function(value::function::type::fn, n));
 
     return {};
   }
@@ -336,7 +336,7 @@ namespace ami::vm {
   }
 
   std::expected<void, std::string> compiler::ret(node* n) {
-    if (fn_type == value::fn::type::script) {
+    if (fn_type == value::function::type::script) {
       return std::unexpected{"Can't return from top level!"};
     }
 
@@ -354,7 +354,7 @@ namespace ami::vm {
   }
 
   std::expected<void, std::string>
-  compiler::function(value::fn::type type, node* n) {
+  compiler::function(value::function::type type, node* n) {
     auto it = ami_dyn_cast(fn_def_node*, n);
 
     compiler comp{type};
@@ -364,8 +364,13 @@ namespace ami::vm {
     auto& args = it->args;
     if (args.size() > max_of<u8>)
       return std::unexpected{"Too many arguments in function!"};
-    comp.fn.ch->second = u8(args.size());
-    comp.fn.ch->first.name = it->name.empty() ? value::str{"anonymous"} : value::str{it->name};
+    comp.fun.desc->arity = u8(args.size());
+    comp.fun.desc->varargs_start = std::nullopt;
+    if (it->is_variadic) {
+      comp.fun.desc->varargs_start = it->args.size() - 1;
+    }
+
+    comp.fun.desc->chunk.name = it->name.empty() ? value::str{"anonymous"} : value::str{it->name};
     for (auto const& arg: args) {
       ami_discard(comp.add_local(arg.first));
     }
@@ -374,14 +379,19 @@ namespace ami::vm {
 
     comp.cur_ch().add(op_code::ret);
 
-    u16 lit = cur_ch().add_lit_get(value{comp.fn});
-    cur_ch().add(op_code::closure);
-    cur_ch().add(lit);
-    cur_ch().add(u16(comp.upvals.size()));
+    u16 lit = cur_ch().add_lit_get(value{comp.fun});
+    if (comp.upvals.empty()) {
+      cur_ch().add(op_code::lit_16);
+      cur_ch().add(lit);
+    } else {
+      cur_ch().add(op_code::closure);
+      cur_ch().add(lit);
+      cur_ch().add(u16(comp.upvals.size()));
 
-    for (auto const& upval : comp.upvals) {
-      cur_ch().add(u8(upval.is_local));
-      cur_ch().add(u16(upval.index));
+      for (auto const& upval: comp.upvals) {
+        cur_ch().add(u8(upval.is_local));
+        cur_ch().add(u16(upval.index));
+      }
     }
 
     return {};
@@ -390,7 +400,7 @@ namespace ami::vm {
   std::expected<void, std::string> compiler::fn_def(node* n) {
     auto it = ami_dyn_cast(fn_def_node*, n);
 
-    ami_discard(function(value::fn::type::fn, n));
+    ami_discard(function(value::function::type::fn, n));
     if (depth > 0) {
       ami_discard(add_local(it->name));
     } else {
@@ -430,7 +440,6 @@ namespace ami::vm {
 
     auto it = int(locals.size() - 1);
     while (it != 0 && locals[it].depth > depth) {
-      std::cout << "hi\n";
       if (locals[it].is_captured) {
         cur_ch().add(op_code::upval_c);
       } else {
@@ -636,14 +645,14 @@ namespace ami::vm {
     return {};
   }
 
-  std::expected<value::fn, std::string> compiler::global(node* n) {
+  std::expected<value::function, std::string> compiler::global(node* n) {
     ami_discard(basic_block(n, true));
 
     cur_ch().add(op_code::ret);
-    return fn;
+    return fun;
   }
 
-  compiler::compiler(value::fn::type type) : fn_type(type), enclosing(nullptr) {
+  compiler::compiler(value::function::type type) : fn_type(type), enclosing(nullptr) {
     locals.emplace_back(value::str{""}, 0);
   }
 

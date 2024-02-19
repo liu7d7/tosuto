@@ -16,8 +16,7 @@ namespace ami {
       {U"with",  tok_type::key_with},
       {U"false", tok_type::key_false},
       {U"true",  tok_type::key_true},
-      {U"nil",   tok_type::key_nil},
-      {U"of",    tok_type::key_of},
+      {U"nil",   tok_type::key_nil}
     };
 
   static std::unordered_map<char32_t, tok_type> symbols =
@@ -30,7 +29,6 @@ namespace ami {
       {U'&',  tok_type::sym_and},
       {U'|',  tok_type::sym_or},
       {U',',  tok_type::comma},
-      {U'.',  tok_type::dot},
       {U'!',  tok_type::exclaim},
       {U';',  tok_type::semicolon},
       {U'\\', tok_type::backslash},
@@ -151,6 +149,19 @@ namespace ami {
           toks.emplace_back(tok_type::greater_than_equal, ">=", begin, cpos);
         } else {
           toks.emplace_back(tok_type::greater_than, ">", begin, cpos);
+        }
+      } else if (ch == '.') {
+        advance();
+
+        if (ch == '.') {
+          advance();
+          if (ch == '.') {
+            advance();
+            toks.emplace_back(tok_type::ellipsis, "...", begin, cpos);
+          }
+          toks.emplace_back(tok_type::range, "..", begin, cpos);
+        } else {
+          toks.emplace_back(tok_type::dot, ".", begin, cpos);
         }
       } else if (ch == '/') {
         advance();

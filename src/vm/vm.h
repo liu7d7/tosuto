@@ -58,7 +58,7 @@ namespace ami::vm {
     std::vector<value> literals;
     value::str name;
 
-    inline explicit chunk(value::str&& name) : name(std::move(name)) {}
+    inline explicit chunk(value::str&& name) : name(name) {}
 
     inline chunk() : name("anonymous") {}
 
@@ -106,7 +106,7 @@ namespace ami::vm {
     }
 
     inline u16 rd_u16(size_t idx) {
-      return (uint16_t(data[idx + 1]) << 8) + uint16_t(data[idx + 0]);
+      return *(u16*)(&data[idx]);
     }
 
     inline op_code rd_op(size_t idx) {
@@ -124,12 +124,18 @@ namespace ami::vm {
     size_t disasm_instr(std::ostream& out, size_t idx);
   };
 
+  struct fn_desc {
+    chunk chunk;
+    u8 arity = 0xff;
+    std::optional<u8> varargs_start;
+  };
+
   struct call_frame {
-    value::fn& fn;
+    value::function& fn;
     size_t ip;
     size_t offset;
 
-    call_frame(value::fn& fn, size_t ip, size_t offset);
+    call_frame(value::function& fn, size_t ip, size_t offset);
   };
 
   struct vm {
@@ -138,8 +144,8 @@ namespace ami::vm {
     std::unordered_map<value::str, value> globals;
     upvalue* open_upvals = nullptr;
 
-    inline explicit vm(value::fn& fn) : frames{call_frame{fn, 0, 0}},
-                                        stack() {
+    inline explicit vm(value::function& fn) : frames{call_frame{fn, 0, 0}},
+                                              stack() {
       stack.reserve(max_of<u16>);
       frames.reserve(max_of<u8>);
       stack[0] = value{frames.back().fn};
@@ -151,11 +157,49 @@ namespace ami::vm {
 
     std::expected<void, std::string> run(std::ostream& out);
 
+    template<typename Fn>
     std::expected<void, std::string>
     call(value& callee, u8 arity, value*& stack_top,
-         std::function<void(bool)> const& update_stack_frame);
+         Fn const& update_stack_frame) {
+      switch (callee.val.index()) {
+        case 7: {
+          auto fn = callee.get<value::native_fn>();
+          if (arity != fn.second) {
+            return std::unexpected{
+              "Non-matching # of arguments! (exp: "
+              + std::to_string(fn.second)
+              + ", got: " + std::to_string(arity) + ")"};
+          }
 
-    void make_closure(value::fn& fn, u16 num_upvals);
+          auto res = ami_unwrap_move_fast(
+            fn.first(std::span{stack_top + 1 - arity, stack_top + 1}));
+          stack_top -= arity;
+          stack_top--;
+          *(++stack_top) = res;
+          return {};
+        }
+        case 6: {
+          auto& fn = callee.get<value::function>();
+          // TODO: implement varargs
+          if (fn.desc->arity != arity) {
+            return std::unexpected{
+              "Non-matching # of arguments! (exp: "
+              + std::to_string(fn.desc->arity)
+              + ", got: " + std::to_string(arity) + ")"};
+          }
+
+          frames.emplace_back(fn, 0, stack_top - stack.data() - arity);
+          update_stack_frame(false);
+
+          return {};
+        }
+        default:;
+      }
+
+      return std::unexpected{"Can't call " + callee.to_string()};
+    }
+
+    void make_closure(value::function& fn, u16 num_upvals);
 
     upvalue* capture_upval(value* local);
 

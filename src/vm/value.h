@@ -11,6 +11,7 @@
 
 namespace ami::vm {
   struct chunk;
+  struct fn_desc;
 
   struct value {
     using num = double;
@@ -21,14 +22,15 @@ namespace ami::vm {
     using ref = std::shared_ptr<value>;
     using native_fn = std::pair<std::expected<value, std::string>(*)(std::span<value> args), u8>;
     using array = std::shared_ptr<std::vector<value>>;
+
     struct nil {
     };
 
-    struct fn {
-      std::shared_ptr<std::pair<chunk, u8>> ch;
+    struct function {
+      std::shared_ptr<fn_desc> desc;
       std::shared_ptr<struct upvalue*[]> upvals;
 
-      fn();
+      function();
 
       enum class type {
         script,
@@ -43,7 +45,7 @@ namespace ami::vm {
       ref,
       nil,
       str,
-      fn,
+      function,
       native_fn,
       array>;
 

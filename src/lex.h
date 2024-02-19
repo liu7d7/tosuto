@@ -63,7 +63,8 @@ namespace ami {
     key_true,
     key_nil,
     question,
-    key_of
+    key_of,
+    ellipsis
   };
 
   static std::string to_string(tok_type type) {
@@ -127,6 +128,7 @@ namespace ami {
         "nil",
         "question",
         "of",
+        "ellipsis",
       };
 
     return tok_type_to_string[std::to_underlying(type)];

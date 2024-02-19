@@ -31,13 +31,13 @@ void test_vm() {
   std::ofstream("out.txt") << (*ast)->pretty(0);
 
   start = cur_ms();
-  auto compile = ami::vm::compiler{ami::vm::value::fn::type::script};
+  auto compile = ami::vm::compiler{ami::vm::value::function::type::script};
   auto res = compile.global(ast->get());
   finish = cur_ms();
   size_t compile_time = finish - start;
   if (!res.has_value()) throw std::runtime_error(res.error());
   auto& fn = res.value();
-  fn.ch->first.disasm(std::cout);
+  fn.desc->chunk.disasm(std::cout);
   std::cout << "\nvm: \n";
 
   using namespace ami;

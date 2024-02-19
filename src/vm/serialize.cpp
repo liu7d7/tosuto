@@ -37,9 +37,9 @@ namespace ami::vm {
     std::vector<serializable_literal> ch_literals;
 
     for (auto const& it : ch.literals) {
-      if (it.is<value::fn>()) {
-        ami_discard(traverse_chunk(it.get<value::fn>().ch->first));
-        ch_literals.emplace_back(serializable_literal_value {std::make_pair(it.get<value::fn>().ch->second,
+      if (it.is<value::function>()) {
+        ami_discard(traverse_chunk(it.get<value::function>().desc->chunk));
+        ch_literals.emplace_back(serializable_literal_value {std::make_pair(it.get<value::function>().desc->arity,
                                                  aggregated_chunks.size() - 1)}, it.val.index());
       } else if (it.is<value::num>()) {
         ch_literals.emplace_back(it.get<value::num>(), it.val.index());

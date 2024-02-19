@@ -24,17 +24,17 @@ namespace ami::vm {
     };
 
     compiler* enclosing;
-    value::fn fn;
-    value::fn::type fn_type;
+    value::function fun;
+    value::function::type fn_type;
     constexpr static u16 max_locals = std::numeric_limits<u16>::max();
     std::vector<local> locals;
     std::vector<upvalue> upvals;
     u8 depth{};
 
-    explicit compiler(value::fn::type type);
+    explicit compiler(value::function::type type);
 
     [[nodiscard]] inline chunk& cur_ch() /* mutating */ {
-      return fn.ch->first;
+      return fun.desc->chunk;
     }
 
     std::expected<void, std::string> number(node* n);
@@ -70,11 +70,11 @@ namespace ami::vm {
 
     std::expected<void, std::string> patch_jump(size_t offset);
 
-    std::expected<value::fn, std::string> global(node* n);
+    std::expected<value::function, std::string> global(node* n);
 
     std::expected<void, std::string> fn_def(node* n);
 
-    std::expected<void, std::string> function(value::fn::type type, node* n);
+    std::expected<void, std::string> function(value::function::type type, node* n);
 
     std::expected<void, std::string> pop_for_exp_stmt(node* exp);
 

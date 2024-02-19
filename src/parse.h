@@ -78,11 +78,12 @@ namespace ami {
     std::string name;
     std::vector<std::pair<std::string, bool>> args;
     std::shared_ptr<node> body;
+    bool is_variadic;
 
     fn_def_node(
       std::string name,
       std::vector<std::pair<std::string, bool>> args,
-      std::shared_ptr<node> body, pos begin, pos end);
+      std::shared_ptr<node> body, bool is_variadic, pos begin, pos end);
 
     [[nodiscard]] std::string pretty(int indent) const override;
   };

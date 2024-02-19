@@ -13,13 +13,12 @@ namespace ami {
     return buf;
   }
 
-  std::unordered_map<std::string, size_t>* map;
   std::vector<std::string>* backing_array;
 
   interned_string::interned_string(const std::string& str) {
     static std::unordered_map<std::string, size_t> my_map;
     static std::vector<std::string> my_backing_array;
-    static int run_once = []{map = &my_map; backing_array = &my_backing_array; return 1;}();
+    static int run_once = []{backing_array = &my_backing_array; return 1;}();
     auto it = my_map.find(str);
     if (it != my_map.end()) {
       index = it->second;
@@ -36,7 +35,7 @@ namespace ami {
 
   interned_string interned_string::operator+(const interned_string& other) const {
     return interned_string{
-      backing_array->at(index) + backing_array->at(index)};
+      backing_array->at(index) + backing_array->at(other.index)};
   }
 
   interned_string::operator std::string const&() const {

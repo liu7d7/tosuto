@@ -13,10 +13,10 @@ namespace ami::vm {
     out << "\n";
 
     for (auto const& it: literals) {
-      if (!it.is<value::fn>()) continue;
-      auto& fn = it.get<value::fn>();
-      out << std::string(name) << "." << std::string(fn.ch->first.name) << ":\n";
-      fn.ch->first.disasm(out, false);
+      if (!it.is<value::function>()) continue;
+      auto& fn = it.get<value::function>();
+      out << std::string(name) << "." << std::string(fn.desc->chunk.name) << ":\n";
+      fn.desc->chunk.disasm(out, false);
       out << "\n";
     }
   }
@@ -188,17 +188,17 @@ namespace ami::vm {
       push_top() = value{a.get<value::object>()->at(op_name)};        \
       push_top() = value{a};                        \
       push_top() = std::move(b);                        \
-      frames.emplace_back(a.get<value::object>()->at(op_name).get<value::fn>(), 0, stack.size() - 2 - 1);\
+      frames.emplace_back(a.get<value::object>()->at(op_name).get<value::function>(), 0, stack.size() - 2 - 1);\
     } else              \
       return std::unexpected{"Couldn't do " + a.to_string() + #op + b.to_string()}; \
   } while(false)
 
     auto* frame = &frames.back();
-    u8* ip = frame->fn.ch->first.data.data();
+    u8* ip = frame->fn.desc->chunk.data.data();
     u8** ip_stack;
     u8* internal[max_of<u8>];
     ip_stack = &internal[0];
-    value* lits = frame->fn.ch->first.literals.data();
+    value* lits = frame->fn.desc->chunk.literals.data();
     size_t frame_offset = 0;
     value* stack_top = stack.data();
     auto update_stack_frame =
@@ -206,22 +206,21 @@ namespace ami::vm {
         frame = &frames.back();
         if (!pop) {
           *(ip_stack++) = ip;
-          ip = frame->fn.ch->first.data.data();
+          ip = frame->fn.desc->chunk.data.data();
         } else {
           ip = *--ip_stack;
         }
-        lits = frame->fn.ch->first.literals.data();
+        lits = frame->fn.desc->chunk.literals.data();
         frame_offset = frame->offset;
       };
 
-#define stack_size size_t(stack_top - stack.data() + 1)
 #define push_top() (*(++stack_top))
 #define peek_top() (*stack_top)
 #define peek_off_top(idx) (stack_top[-(idx)])
 #define pop_top() std::move(*stack_top--)
-#define rd_u16() (ip += 2, u16(ip[-2]) + u16(ip[-1] << 8))
+#define rd_u16() (ip += 2, *(u16*)(&ip[-2]))
 #define rd_u8() (*ip++)
-#define rd_lit_16() (ip += 2, lits[u16(ip[-2]) + u16(ip[-1] << 8)])
+#define rd_lit_16() (ip += 2, lits[*(u16*)(&ip[-2])])
 #define rd_lit_8() (lits[*ip++])
 #define rd_op() (op_code(*ip++))
 
@@ -232,7 +231,7 @@ namespace ami::vm {
         out << it->to_string() << " ";
       }
       out << "]\n";
-      frame->fn.ch->first.disasm_instr(out, ip - frame->fn.ch->first.data.data());
+      frame->function.desc->first.disasm_instr(out, ip - frame->function.desc->first.data.data());
       out << '\n';
 #endif
 
@@ -297,7 +296,7 @@ namespace ami::vm {
             push_top() = a;                        \
             push_top() = std::move(b);                        \
             frames.emplace_back(
-              a.get<value::object>()->at(op_name).get<value::fn>(), 0,
+              a.get<value::object>()->at(op_name).get<value::function>(), 0,
               stack.size() - 2 - 1);\
             update_stack_frame(false);
           } else {
@@ -329,7 +328,7 @@ namespace ami::vm {
             push_top() = a;                        \
             push_top() = std::move(b);                        \
             frames.emplace_back(
-              a.get<value::object>()->at(op_name).get<value::fn>(), 0,
+              a.get<value::object>()->at(op_name).get<value::function>(), 0,
               stack.size() - 2 - 1);\
             update_stack_frame(false);
           } else {
@@ -547,7 +546,7 @@ namespace ami::vm {
           break;
         }
         case op_code::closure: {
-          value::fn fn = rd_lit_16().get<value::fn>(); // must copy
+          value::function fn = rd_lit_16().get<value::function>(); // must copy
           u16 num_upvals = rd_u16();
           make_closure(fn, num_upvals);
           for (int i = 0; i < num_upvals; i++) {
@@ -576,53 +575,13 @@ namespace ami::vm {
     }
   }
 
-  std::expected<void, std::string>
-  vm::call(value& callee, u8 arity, value*& stack_top,
-           std::function<void(bool)> const& update_stack_frame) {
-    switch (callee.val.index()) {
-      case 7: {
-        auto fn = callee.get<value::native_fn>();
-        if (arity != fn.second) {
-          return std::unexpected{
-            "Non-matching # of arguments! (exp: "
-            + std::to_string(fn.second)
-            + ", got: " + std::to_string(arity) + ")"};
-        }
-
-        auto res = ami_unwrap_move_fast(
-          fn.first(std::span{stack_top + 1 - arity, stack_top + 1}));
-        stack_top -= arity;
-        stack_top--;
-        push_top() = res;
-        return {};
-      }
-      case 6: {
-        auto& fn = callee.get<value::fn>();
-        if (fn.ch->second != arity) {
-          return std::unexpected{
-            "Non-matching # of arguments! (exp: "
-            + std::to_string(fn.ch->second)
-            + ", got: " + std::to_string(arity) + ")"};
-        }
-
-        frames.emplace_back(fn, 0, stack_size - arity - 1);
-        update_stack_frame(false);
-
-        return {};
-      }
-      default:;
-    }
-
-    return std::unexpected{"Can't call " + callee.to_string()};
-  }
-
   void
   vm::def_native(const std::string& name, value::native_fn::second_type arity,
                  value::native_fn::first_type fn) {
     globals[value::str{name}] = value{std::make_pair(fn, arity)};
   }
 
-  void vm::make_closure(value::fn& fn, u16 num_upvals) {
+  void vm::make_closure(value::function& fn, u16 num_upvals) {
     fn.upvals = std::make_shared<upvalue*[]>(num_upvals, nullptr);
   }
 
@@ -636,6 +595,9 @@ namespace ami::vm {
 
     if (upval && upval->loc == local) return upval;
 
+    // TODO: leak!
+    // well, technically not, because it's kept in our linked list, but
+    // leak nonetheless
     auto* new_upval = new upvalue{local};
     new_upval->next = upval;
 
@@ -648,6 +610,6 @@ namespace ami::vm {
     return new_upval;
   }
 
-  call_frame::call_frame(value::fn& fn, size_t ip, size_t offset)
+  call_frame::call_frame(value::function& fn, size_t ip, size_t offset)
     : fn(fn), ip(ip), offset(offset) {}
 }

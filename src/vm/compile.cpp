@@ -4,9 +4,9 @@
 #include <format>
 #include <iostream>
 
-namespace ami::vm {
+namespace tosuto::vm {
   std::unordered_map<node_type, std::expected<void, std::string>(compiler::*)(
-    ami::node*)> compilers{
+    tosuto::node*)> compilers{
     {node_type::bin_op,      &compiler::bin_op},
     {node_type::number,      &compiler::number},
     {node_type::un_op,       &compiler::un_op},
@@ -30,7 +30,7 @@ namespace ami::vm {
 
 #define AMI_SIMPLE_CVT_TOKTYPE_TO_INSTR(op) case tok_type::op: cur_ch().add(op_code::op); break;
 
-  std::expected<void, std::string> compiler::bin_op(ami::node* n) {
+  std::expected<void, std::string> compiler::bin_op(tosuto::node* n) {
     auto it = ami_dyn_cast(bin_op_node*, n);
     if (it->op == tok_type::assign) {
       if (it->lhs->type == node_type::bin_op) {

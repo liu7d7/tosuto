@@ -3,7 +3,7 @@
 #include "vm.h"
 #include "../parse.h"
 
-namespace ami::vm {
+namespace tosuto::vm {
   struct compiler {
     struct upvalue {
       u16 index;

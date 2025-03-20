@@ -7,9 +7,9 @@
 #include <cmath>
 #include <expected>
 #include <span>
-#include "../ami.h"
+#include "../tosuto.h"
 
-namespace ami::vm {
+namespace tosuto::vm {
   struct chunk;
   struct fn_desc;
 
@@ -83,8 +83,8 @@ namespace ami::vm {
 }
 
 //template<>
-//struct std::hash<ami::vm::value> {
-//  size_t operator()(ami::vm::value const& val) const {
+//struct std::hash<tosuto::vm::value> {
+//  size_t operator()(tosuto::vm::value const& val) const {
 //    switch (val.val.index()) {
 //
 //    }

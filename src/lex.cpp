@@ -2,7 +2,7 @@
 #include <iostream>
 #include "lex.h"
 
-namespace ami {
+namespace tosuto {
   static std::unordered_map<std::u32string, tok_type> keywords =
     {
       {U"if",    tok_type::key_if},
@@ -291,7 +291,7 @@ namespace ami {
 
   std::string token::to_string() const {
     std::string buf = "token{type=";
-    buf += ami::to_string(type);
+    buf += tosuto::to_string(type);
     buf += ", lexeme=";
     buf += lexeme;
     buf += ", begin=";

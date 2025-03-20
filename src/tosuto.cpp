@@ -1,7 +1,7 @@
 #include <iostream>
-#include "ami.h"
+#include "tosuto.h"
 
-namespace ami {
+namespace tosuto {
   std::string pos::to_string() const {
     std::string buf = "pos{idx=";
     buf += std::to_string(idx);
@@ -49,7 +49,7 @@ namespace ami {
   pos pos::synthesized{0, 0, 0};
 }
 
-size_t std::hash<ami::interned_string>::operator()(
-  const ami::interned_string& str) const noexcept {
+size_t std::hash<tosuto::interned_string>::operator()(
+  const tosuto::interned_string& str) const noexcept {
   return hasher(str.index);
 }

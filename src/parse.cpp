@@ -4,7 +4,7 @@
 #include <memory>
 #include "parse.h"
 
-namespace ami {
+namespace tosuto {
   parser::parser(std::vector<token> toks) :
     toks(std::move(toks)),
     idx(0) {

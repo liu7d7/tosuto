@@ -2,9 +2,9 @@
 
 #include <string>
 #include <utility>
-#include "ami.h"
+#include "tosuto.h"
 
-namespace ami {
+namespace tosuto {
   enum class tok_type {
     id,
     colon,

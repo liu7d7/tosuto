@@ -1,60 +1,71 @@
 block: [
   fn_def_node: {
-    name: ﾌｨﾎﾞ,
-    args: [ﾜ],
-    body: bin_op_node: {
-      op: or,
-      lhs: bin_op_node: {
-        op: and,
-        lhs: bin_op_node: {
-          op: less_than,
-          lhs: field_get_node: {
-            target: nil,
-            field: ﾜ,
-          }
-          rhs: number_node: 2.000000
-        }
-        rhs: field_get_node: {
-          target: nil,
-          field: ﾜ,
-        }
-      }
-      rhs: bin_op_node: {
+    name: add_one,
+    args: [orig],
+    body: fn_def_node: {
+      name: ,
+      args: [],
+      body: bin_op_node: {
         op: add,
         lhs: call_node: {
           callee: field_get_node: {
             target: nil,
-            field: ﾌｨﾎﾞ,
+            field: orig,
           },
           args: [
-            bin_op_node: {
-              op: sub,
-              lhs: field_get_node: {
-                target: nil,
-                field: ﾜ,
-              }
-              rhs: number_node: 1.000000
-            }
+
           ],
         }
-        rhs: call_node: {
+        rhs: number_node: 1.000000
+      }
+    }
+  },
+  fn_def_node: {
+    name: add_n,
+    args: [orig, n],
+    body: fn_def_node: {
+      name: ,
+      args: [],
+      body: bin_op_node: {
+        op: add,
+        lhs: call_node: {
           callee: field_get_node: {
             target: nil,
-            field: ﾌｨﾎﾞ,
+            field: orig,
           },
           args: [
-            bin_op_node: {
-              op: sub,
-              lhs: field_get_node: {
-                target: nil,
-                field: ﾜ,
-              }
-              rhs: number_node: 2.000000
-            }
+
           ],
+        }
+        rhs: field_get_node: {
+          target: nil,
+          field: n,
         }
       }
     }
+  },
+  decorated: {
+    target: fn_def_node: {
+      name: test,
+      args: [],
+      body: number_node: 1.000000
+    }
+    decos: [      deco: {
+        deco: field_get_node: {
+          target: nil,
+          field: add_n,
+        }
+        fields: [          number_node: 3.000000
+],
+      },
+      deco: {
+        deco: field_get_node: {
+          target: nil,
+          field: add_one,
+        }
+        fields: [],
+      }
+],
   },
   call_node: {
     callee: field_get_node: {
@@ -65,10 +76,10 @@ block: [
       call_node: {
         callee: field_get_node: {
           target: nil,
-          field: ﾌｨﾎﾞ,
+          field: test,
         },
         args: [
-          number_node: 35.000000
+
         ],
       }
     ],

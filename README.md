@@ -1,8 +1,9 @@
-## ami
+## tosuto 
 
-_the scripting language that aims to be your friend_
+_the scripting language that aims to be your friend..._
+~# ...and also a toaster?
 
-Ami is designed to be easy to write and extend, as well
+Tosuto is designed to be easy to write and extend, as well
 as easily interact with C++.
 
 In the future, I want this language to have something special about it, so I'll

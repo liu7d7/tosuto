@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <iostream>
 
-namespace ami::vm {
+namespace tosuto::vm {
   void chunk::disasm(std::ostream& out, bool add_name) {
     if (add_name) out << std::string(name) << ":\n";
 

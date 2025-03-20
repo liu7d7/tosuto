@@ -111,7 +111,7 @@ Stream& operator<<
   return print_one_value_container(outputstream, adapter);
 }
 
-namespace ami {
+namespace tosuto {
   using u8 = uint8_t;
   using u16 = uint16_t;
   using u32 = uint32_t;
@@ -185,8 +185,8 @@ namespace ami {
 }
 
 template<>
-struct std::hash<ami::interned_string> {
+struct std::hash<tosuto::interned_string> {
   static constexpr auto hasher = std::hash<size_t>();
 
-  size_t operator()(ami::interned_string const& str) const noexcept;
+  size_t operator()(tosuto::interned_string const& str) const noexcept;
 };

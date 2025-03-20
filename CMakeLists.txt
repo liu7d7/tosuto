@@ -4,8 +4,8 @@ project(ami)
 set(CMAKE_CXX_STANDARD 23)
 
 add_executable(ami main.cpp
-        src/ami.h
-        src/ami.cpp
+        src/tosuto.h
+        src/tosuto.cpp
         src/lex.h
         src/lex.cpp
         src/parse.h
@@ -20,9 +20,6 @@ add_executable(ami main.cpp
         src/vm/value.h
         src/vm/value.cpp
         src/rigtorp.h
-        src/vm/serialize.h
-        src/vm/serialize.cpp
-        src/vm/deserialize.h
 )
 
 target_compile_options(ami PUBLIC "$<$<CONFIG:Release>:-Ofast>")

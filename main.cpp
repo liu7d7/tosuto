@@ -1,11 +1,10 @@
 #include <iostream>
 #include <chrono>
-#include "src/ami.h"
+#include "src/tosuto.h"
 #include "src/lex.h"
 #include "src/parse.h"
 #include "src/vm/vm.h"
 #include "src/vm/compile.h"
-#include "src/vm/serialize.h"
 
 size_t cur_ms() {
   using namespace std::chrono;
@@ -17,13 +16,13 @@ size_t cur_ms() {
 void test_vm() {
   size_t start, finish;
   start = cur_ms();
-  auto lex = ami::lexer{"test.ami"};
+  auto lex = tosuto::lexer{"test.tosuto"};
   auto toks = lex.lex();
   finish = cur_ms();
   size_t lex_time = finish - start;
 
   start = cur_ms();
-  auto parse = ami::parser{toks};
+  auto parse = tosuto::parser{toks};
   auto ast = parse.global();
   finish = cur_ms();
   size_t parse_time = finish - start;
@@ -31,7 +30,7 @@ void test_vm() {
   std::ofstream("out.txt") << (*ast)->pretty(0);
 
   start = cur_ms();
-  auto compile = ami::vm::compiler{ami::vm::value::function::type::script};
+  auto compile = tosuto::vm::compiler{tosuto::vm::value::function::type::script};
   auto res = compile.global(ast->get());
   finish = cur_ms();
   size_t compile_time = finish - start;
@@ -40,7 +39,7 @@ void test_vm() {
   fn.desc->chunk.disasm(std::cout);
   std::cout << "\nvm: \n";
 
-  using namespace ami;
+  using namespace tosuto;
 
   auto vm = vm::vm{fn};
   using nt_ret = std::expected<vm::value, std::string>;

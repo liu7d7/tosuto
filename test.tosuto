@@ -1,0 +1,9 @@
+add_one : orig -> : -> orig() + 1
+add_n : orig n -> : -> orig() + n
+ 
+@add_n(3)
+@add_one
+test -> 1
+ 
+log(test()) // expected value: 5
+ 

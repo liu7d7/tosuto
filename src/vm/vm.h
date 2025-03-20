@@ -1,12 +1,12 @@
 #pragma once
 
 #include <stack>
-#include "../ami.h"
+#include "../tosuto.h"
 #include "value.h"
 #include <utility>
 #include <variant>
 
-namespace ami::vm {
+namespace tosuto::vm {
   enum class op_code : u8 {
     ret,
     neg,

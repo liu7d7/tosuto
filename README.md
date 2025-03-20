@@ -1,7 +1,7 @@
 ## tosuto 
 
 _the scripting language that aims to be your friend..._
-~# ...and also a toaster?
+<div style="text-size: 0.3rem; color: lightslategray">...and also a toaster?</div>
 
 Tosuto is designed to be easy to write and extend, as well
 as easily interact with C++.
